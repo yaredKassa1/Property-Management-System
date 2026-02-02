@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { setAuthToken, setUser } from '@/lib/auth';
@@ -16,8 +16,13 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [focusedField, setFocusedField] = useState<string | null>(null);
   const [rememberMe, setRememberMe] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const roleOptions = [
     { value: 'administrator', label: 'Administrator', icon: '👑' },
@@ -46,250 +51,199 @@ export default function LoginPage() {
     }
   };
 
+  if (!mounted) return null;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-purple-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-blue-500/30">
+      {/* Refined Background – More blue-centric, subtler blobs */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-blue-400/20 rounded-full mix-blend-multiply filter blur-[120px] opacity-40 animate-blob"></div>
+        <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-cyan-400/20 rounded-full mix-blend-multiply filter blur-[120px] opacity-40 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] bg-indigo-300/20 rounded-full mix-blend-multiply filter blur-[140px] opacity-30 animate-pulse slow-pulse"></div>
+        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-40 mix-blend-overlay"></div>
       </div>
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-        <div className="flex justify-center animate-fade-in-down">
-          <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
-            <div className="relative w-24 h-24 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-2xl transform transition-all duration-300 group-hover:scale-105">
-              <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-            </div>
-          </div>
-        </div>
-        <h2 className="mt-8 text-center text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent animate-fade-in">
-          WDUPMS
-        </h2>
-        <p className="mt-3 text-center text-base text-gray-600 font-medium animate-fade-in animation-delay-200">
-          Woldia University Property Management System
-        </p>
-      </div>
+      <div className="w-full max-w-[460px] relative z-10">
+        {/* Enhanced Glass Card - Light Theme */}
+        <div className="relative bg-white/70 backdrop-blur-3xl border border-white/40 rounded-3xl shadow-2xl overflow-hidden ring-1 ring-black/5">
 
-      <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-md relative z-10 animate-fade-in-up animation-delay-300">
-        <div className="bg-white/80 backdrop-blur-lg py-10 px-6 shadow-2xl sm:rounded-2xl sm:px-12 border border-gray-100">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-2xl font-bold text-gray-900">Sign In</h3>
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-xs text-gray-500 font-medium">Secure Login</span>
+          {/* Header – Woldia University Branding */}
+          <div className="px-8 pt-12 pb-8 text-center">
+            {/* University Logo – Replace with actual logo in public/wdu-logo.png */}
+            <div className="relative inline-block group mb-6">
+              <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full blur opacity-30 group-hover:opacity-50 transition duration-500"></div>
+              <div className="relative w-28 h-28 bg-white rounded-full flex items-center justify-center shadow-xl ring-1 ring-slate-100 transform transition-transform duration-500 group-hover:scale-105">
+                {/* Placeholder for official logo */}
+                <img
+                  src="/wdu-logo.png"
+                  alt="Woldia University Logo"
+                  className="w-24 h-24 object-contain rounded-full"
+                  onError={(e) => {
+                    // Fallback if image fails
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.parentElement?.classList.add('fallback-logo');
+                  }}
+                />
+                <div className="hidden fallback-logo text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-blue-600 to-cyan-600">WDU</div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Woldia University</h1>
+              <p className="text-lg font-semibold text-blue-600">Property Management System</p>
+              <p className="text-sm text-slate-500 font-medium">WDUPMS - "Open Mind, Open Eyes"</p>
             </div>
           </div>
-          
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div className="transform transition-all duration-300 hover:scale-[1.01]">
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
-                Select Role
-              </label>
-              <div className="relative">
+
+          <div className="px-8 pb-10">
+            <form onSubmit={handleSubmit} className="space-y-6">
+
+              {/* Role Select */}
+              <div className="relative group">
                 <select
-                  id="role"
-                  name="role"
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
                   onFocus={() => setFocusedField('role')}
                   onBlur={() => setFocusedField(null)}
-                  className={`appearance-none block w-full px-4 py-3 pr-10 border ${
-                    focusedField === 'role' ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-300'
-                  } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-sm font-medium bg-white hover:border-blue-400 cursor-pointer`}
+                  className="peer w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-4 pt-5 appearance-none focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all cursor-pointer hover:bg-slate-100 hover:border-blue-300"
                 >
                   {roleOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
+                    <option key={option.value} value={option.value} className="bg-white text-slate-800">
                       {option.icon} {option.label}
                     </option>
                   ))}
                 </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <label className="absolute left-4 top-1 text-[10px] font-bold text-blue-600 uppercase tracking-wider transition-all pointer-events-none">
+                  Select Role
+                </label>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-hover:text-blue-500 transition-colors">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
                   </svg>
                 </div>
               </div>
-            </div>
-       
-            <div className="transform transition-all duration-300 hover:scale-[1.01]">
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-                Username
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className={`h-5 w-5 ${focusedField === 'username' ? 'text-blue-500' : 'text-gray-400'} transition-colors duration-200`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
+
+              {/* Username */}
+              <div className="relative group">
                 <input
-                  id="username"
-                  name="username"
                   type="text"
-                  autoComplete="username"
                   required
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                   onFocus={() => setFocusedField('username')}
                   onBlur={() => setFocusedField(null)}
-                  placeholder="Enter your username"
-                  className={`appearance-none block w-full pl-10 pr-4 py-3 border ${
-                    focusedField === 'username' ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-300'
-                  } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-sm hover:border-blue-400`}
+                  className="peer w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-4 pt-5 pl-11 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder-transparent hover:bg-slate-100 hover:border-blue-300"
+                  placeholder="Username"
                 />
-              </div>
-            </div>
-
-            <div className="transform transition-all duration-300 hover:scale-[1.01]">
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className={`h-5 w-5 ${focusedField === 'password' ? 'text-blue-500' : 'text-gray-400'} transition-colors duration-200`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                <label className={`absolute left-11 transition-all pointer-events-none duration-200 ${focusedField === 'username' || formData.username ? 'top-1 text-[10px] font-bold text-blue-600 uppercase tracking-wider' : 'top-1/2 -translate-y-1/2 text-sm text-slate-500'}`}>
+                  Username
+                </label>
+                <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${focusedField === 'username' ? 'text-blue-500' : 'text-slate-400 group-hover:text-slate-500'}`}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
+              </div>
+
+              {/* Password */}
+              <div className="relative group">
                 <input
-                  id="password"
-                  name="password"
                   type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
                   required
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   onFocus={() => setFocusedField('password')}
                   onBlur={() => setFocusedField(null)}
-                  placeholder="Enter your password"
-                  className={`appearance-none block w-full pl-10 pr-12 py-3 border ${
-                    focusedField === 'password' ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-300'
-                  } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-sm hover:border-blue-400`}
+                  className="peer w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-4 pt-5 pl-11 pr-11 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder-transparent hover:bg-slate-100 hover:border-blue-300"
+                  placeholder="Password"
                 />
+                <label className={`absolute left-11 transition-all pointer-events-none duration-200 ${focusedField === 'password' || formData.password ? 'top-1 text-[10px] font-bold text-blue-600 uppercase tracking-wider' : 'top-1/2 -translate-y-1/2 text-sm text-slate-500'}`}>
+                  Password
+                </label>
+                <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${focusedField === 'password' ? 'text-blue-500' : 'text-slate-400 group-hover:text-slate-500'}`}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-blue-600 transition-colors duration-200 focus:outline-none"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
                 >
                   {showPassword ? (
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                     </svg>
                   ) : (
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
                   )}
                 </button>
               </div>
-            </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center group">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer transition-all duration-200"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700 cursor-pointer group-hover:text-blue-600 transition-colors duration-200">
-                  Remember me
+              {/* Options */}
+              <div className="flex items-center justify-between text-sm">
+                <label className="flex items-center space-x-2.5 cursor-pointer group select-none">
+                  <div className="relative">
+                    <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="sr-only peer" />
+                    <div className="w-5 h-5 rounded border-2 border-slate-300 bg-white peer-checked:bg-blue-600 peer-checked:border-blue-600 transition-all duration-200"></div>
+                    <svg className="absolute top-0.5 left-0.5 w-4 h-4 text-white scale-0 peer-checked:scale-100 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <span className="text-slate-500 group-hover:text-slate-700 transition-colors font-medium">Remember me</span>
                 </label>
-              </div>
-
-              <div className="text-sm">
-                <button type="button" className="font-medium text-blue-600 hover:text-blue-700 hover:underline transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-1">
+                <button type="button" className="text-blue-600 hover:text-blue-700 transition-colors font-semibold hover:underline">
                   Forgot password?
                 </button>
               </div>
-            </div>
 
-            {error && (
-              <div className="rounded-lg bg-red-50 border border-red-200 p-4 animate-shake">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3 flex-1">
-                    <p className="text-sm font-medium text-red-800">{error}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setError('')}
-                    className="ml-3 flex-shrink-0 text-red-400 hover:text-red-600 transition-colors duration-200"
-                  >
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
+              {/* Error */}
+              {error && (
+                <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm flex items-center animate-shake">
+                  <svg className="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  {error}
                 </div>
-              </div>
-            )}
+              )}
 
-            <div className="pt-2">
+              {/* Submit */}
               <button
                 type="submit"
                 disabled={loading}
-                className="group relative w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98]"
+                className="relative w-full py-4.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg rounded-xl shadow-lg hover:shadow-xl shadow-blue-500/20 transform transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden group"
               >
-                <span className="absolute left-0 inset-y-0 flex items-center pl-3">
-                  {!loading && (
-                    <svg className="h-5 w-5 text-blue-300 group-hover:text-blue-200 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                    </svg>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                <span className="relative flex items-center justify-center">
+                  {loading ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Authenticating...
+                    </>
+                  ) : (
+                    'Access Dashboard'
                   )}
                 </span>
-                {loading ? (
-                  <span className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Signing in...
-                  </span>
-                ) : (
-                  'Sign In'
-                )}
               </button>
-            </div>
-          </form>
+            </form>
 
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <div className="relative">
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white/80 text-gray-600">
-                  Need help?{' '}
-                  <button type="button" className="font-medium text-blue-600 hover:text-blue-700 hover:underline transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-1">
-                    Contact administrator
-                  </button>
-                </span>
+            {/* Footer – Updated */}
+            <div className="mt-10 text-center border-t border-slate-100 pt-6">
+              <p className="text-slate-400 text-xs">© {new Date().getFullYear()} Woldia University. All rights reserved.</p>
+              <div className="flex items-center justify-center gap-4 mt-4 text-xs">
+                <a href="#" className="text-slate-500 hover:text-blue-600 transition-colors uppercase tracking-wider font-semibold">Privacy</a>
+                <span className="text-slate-300">•</span>
+                <a href="#" className="text-slate-500 hover:text-blue-600 transition-colors uppercase tracking-wider font-semibold">Terms</a>
+                <span className="text-slate-300">•</span>
+                <a href="#" className="text-slate-500 hover:text-blue-600 transition-colors uppercase tracking-wider font-semibold">Support</a>
               </div>
             </div>
-          </div>
-
-          <div className="mt-6 flex items-center justify-center space-x-2 text-xs text-gray-500">
-            <svg className="h-4 w-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
-            <span>Secured with 256-bit SSL encryption</span>
-          </div>
-        </div>
-
-        <div className="mt-8 text-center space-y-2">
-          <p className="text-xs text-gray-500">
-             2026 Woldia University. All rights reserved.
-          </p>
-          <div className="flex items-center justify-center space-x-4 text-xs text-gray-400">
-            <button type="button" className="hover:text-blue-600 transition-colors duration-200">Privacy Policy</button>
-            <span></span>
-            <button type="button" className="hover:text-blue-600 transition-colors duration-200">Terms of Service</button>
           </div>
         </div>
       </div>
