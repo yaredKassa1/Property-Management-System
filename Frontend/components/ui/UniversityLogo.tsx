@@ -1,0 +1,45 @@
+export default function UniversityLogo({ size = 120 }: { size?: number }) {
+  return (
+    <svg 
+      width={size} 
+      height={size} 
+      viewBox="0 0 120 120" 
+      fill="none" 
+      xmlns="http://www.w3.org/2000/svg"
+      className="drop-shadow-2xl"
+    >
+      {/* Shield Background */}
+      <path 
+        d="M60 10L20 30V50C20 75 35 95 60 110C85 95 100 75 100 50V30L60 10Z" 
+        fill="url(#shield-gradient)" 
+        stroke="white" 
+        strokeWidth="2"
+      />
+      
+      {/* Book */}
+      <rect x="45" y="45" width="30" height="35" rx="2" fill="white" opacity="0.9"/>
+      <line x1="60" y1="45" x2="60" y2="80" stroke="#4F46E5" strokeWidth="2"/>
+      <line x1="45" y1="55" x2="75" y2="55" stroke="#4F46E5" strokeWidth="1" opacity="0.5"/>
+      <line x1="45" y1="62" x2="75" y2="62" stroke="#4F46E5" strokeWidth="1" opacity="0.5"/>
+      <line x1="45" y1="69" x2="75" y2="69" stroke="#4F46E5" strokeWidth="1" opacity="0.5"/>
+      
+      {/* Graduation Cap */}
+      <path d="M60 35L40 42L60 49L80 42L60 35Z" fill="white"/>
+      <rect x="58" y="49" width="4" height="12" fill="white"/>
+      <circle cx="60" cy="63" r="2" fill="white"/>
+      
+      {/* Stars */}
+      <circle cx="35" cy="40" r="2" fill="white" opacity="0.8"/>
+      <circle cx="85" cy="40" r="2" fill="white" opacity="0.8"/>
+      <circle cx="60" cy="25" r="2" fill="white" opacity="0.8"/>
+      
+      <defs>
+        <linearGradient id="shield-gradient" x1="20" y1="10" x2="100" y2="110" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#4F46E5"/>
+          <stop offset="50%" stopColor="#7C3AED"/>
+          <stop offset="100%" stopColor="#EC4899"/>
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}

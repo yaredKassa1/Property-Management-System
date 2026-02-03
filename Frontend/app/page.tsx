@@ -2,16 +2,31 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { isAuthenticated } from '@/lib/auth';
+import { getDefaultRouteForRole } from '@/lib/utils';
 
 export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (isAuthenticated()) {
-      router.push('/dashboard');
+    // Get token and user from localStorage
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const user = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+
+    console.log('HomePage: Token:', token);
+    console.log('HomePage: User:', user);
+
+    // Check if both exist and are valid
+    const hasValidToken = token && token !== 'undefined' && token !== 'null';
+    const hasValidUser = user && user !== 'undefined' && user !== 'null';
+
+    if (hasValidToken && hasValidUser) {
+      const parsedUser = user ? JSON.parse(user) : null;
+      const targetRoute = parsedUser?.role ? getDefaultRouteForRole(parsedUser.role) : '/dashboard';
+      console.log('HomePage: Has valid auth, redirecting to', targetRoute);
+      router.replace(targetRoute);
     } else {
-      router.push('/login');
+      console.log('HomePage: No valid auth, redirecting to login');
+      router.replace('/login');
     }
   }, [router]);
 

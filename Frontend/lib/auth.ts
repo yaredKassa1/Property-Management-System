@@ -32,7 +32,7 @@ export function setUser(user: User): void {
 export function getUser(): User | null {
   if (typeof window !== 'undefined') {
     const userStr = localStorage.getItem(USER_KEY);
-    if (userStr) {
+    if (userStr && userStr !== 'undefined' && userStr !== 'null') {
       try {
         return JSON.parse(userStr);
       } catch {
@@ -44,7 +44,8 @@ export function getUser(): User | null {
 }
 
 export function isAuthenticated(): boolean {
-  return !!getAuthToken();
+  const token = getAuthToken();
+  return !!token && token !== 'undefined' && token !== 'null';
 }
 
 export function hasRole(user: User | null, roles: string[]): boolean {

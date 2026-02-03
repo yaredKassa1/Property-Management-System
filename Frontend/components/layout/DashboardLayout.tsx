@@ -1,55 +1,89 @@
+// components/layout/DashboardLayout.tsx
 'use client';
 
-import { ReactNode, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Header } from './Header';
-import { Sidebar } from './Sidebar';
-import { getUser, isAuthenticated } from '@/lib/auth';
+import { isAuthenticated, getUser } from '@/lib/auth';
 import { User } from '@/lib/types';
+import { Header } from '@/components/layout/Header'; // adjust path if needed
+// import Sidebar or other layout components if you have them
 
 interface DashboardLayoutProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
-    if (!isAuthenticated()) {
-      router.push('/login');
-      return;
-    }
+    setIsMounted(true);
 
-    const currentUser = getUser();
-    if (!currentUser) {
-      router.push('/login');
-      return;
-    }
+    const checkAuthentication = () => {
+      const authenticated = isAuthenticated();
+      const user = getUser();
 
-    setUser(currentUser);
-    setLoading(false);
+      console.log('[DashboardLayout] Auth check:');
+      console.log('   isAuthenticated →', authenticated);
+      console.log('   user →', user);
+
+      if (authenticated && user) {
+        setCurrentUser(user);
+        setIsAuthorized(true);
+      } else {
+        console.log('[DashboardLayout] → Not authenticated → redirecting to /login');
+        router.replace('/login');
+      }
+
+      setIsChecking(false);
+    };
+
+    // Give localStorage a tiny moment to be ready (helps in some edge cases)
+    const timer = setTimeout(checkAuthentication, 80);
+
+    return () => clearTimeout(timer);
   }, [router]);
 
-  if (loading || !user) {
+  // Prevent any flash of content before mount & check
+  if (!isMounted || isChecking) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <p className="text-gray-500">Loading dashboard...</p>
         </div>
       </div>
     );
   }
 
+  // If not authorized → we already redirected, but just in case
+  if (!isAuthorized || !currentUser) {
+    return null;
+  }
+
   return (
-    <div className="flex h-screen bg-gray-100">
-      <Sidebar user={user} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header user={user} />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header */}
+      <Header user={currentUser} />
+
+      {/* Optional: Sidebar + Main content wrapper */}
+      <div className="flex flex-1">
+        {/* Sidebar (uncomment/add when you have it) */}
+        {/* <Sidebar /> */}
+
+        {/* Main content area */}
+        <main className="flex-1 p-6 md:p-8 overflow-auto">
+          {children}
+        </main>
       </div>
+
+      {/* Optional footer */}
+      {/* <footer className="bg-white border-t py-4 text-center text-sm text-gray-500">
+        © {new Date().getFullYear()} Woldia University Property Management System
+      </footer> */}
     </div>
   );
 }

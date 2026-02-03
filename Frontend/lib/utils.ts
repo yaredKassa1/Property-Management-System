@@ -68,3 +68,17 @@ export function getRoleLabel(role: string): string {
   };
   return labels[role] || role;
 }
+
+export function getDefaultRouteForRole(role: string): string {
+  const routes: Record<string, string> = {
+    administrator: '/dashboard',
+    vice_president: '/reports',
+    property_officer: '/assignments',
+    approval_authority: '/transfers',
+    purchase_department: '/requests',
+    quality_assurance: '/returns',
+    staff: '/requests',
+  };
+
+  return routes[role] || '/dashboard';
+}
