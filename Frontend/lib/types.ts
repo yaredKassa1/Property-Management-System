@@ -65,63 +65,95 @@ export interface Assignment {
 }
 
 // Transfer Types
-export type TransferStatus = 'pending' | 'approved' | 'rejected' | 'completed' | 'cancelled';
+export type TransferStatus = 'pending' | 'approved' | 'rejected' | 'in_transit' | 'completed' | 'cancelled';
 
 export interface Transfer {
   id: string;
   assetId: string;
-  assetName: string;
-  fromUserId: string;
-  fromUserName: string;
-  fromDepartment: string;
+  fromUserId?: string | null;
   toUserId: string;
-  toUserName: string;
-  toDepartment: string;
+  fromLocation: string;
+  toLocation: string;
+  fromDepartment?: string;
+  toDepartment?: string;
+  status: TransferStatus;
+  requestedBy: string;
+  approvedBy?: string;
   reason: string;
+  notes?: string;
   requestDate: string;
   approvalDate?: string;
   completionDate?: string;
-  status: TransferStatus;
-  approvedBy?: string;
-  comments?: string;
+  rejectionReason?: string;
+  createdAt: string;
+  updatedAt: string;
+  // Relations
+  asset?: Asset;
+  fromUser?: User;
+  toUser?: User;
+  requester?: User;
+  approver?: User;
 }
 
 // Return Types
-export type ReturnStatus = 'pending' | 'inspected' | 'completed';
+export type ReturnStatus = 'pending' | 'received' | 'under_inspection' | 'approved' | 'rejected' | 'completed';
 
 export interface Return {
   id: string;
   assetId: string;
-  assetName: string;
-  returningUserId: string;
-  returningUserName: string;
-  returnDate: string;
-  conditionOnReturn: AssetCondition;
-  reason: string;
-  damages?: string;
-  status: ReturnStatus;
+  returnedBy: string;
+  receivedBy?: string;
   inspectedBy?: string;
+  status: ReturnStatus;
+  returnCondition?: AssetCondition;
+  reason: string;
   inspectionNotes?: string;
+  damageDescription?: string;
+  returnDate: string;
+  receivedDate?: string;
+  inspectionDate?: string;
+  completionDate?: string;
+  createdAt: string;
+  updatedAt: string;
+  // Relations
+  asset?: Asset;
+  returner?: User;
+  receiver?: User;
+  inspector?: User;
 }
 
 // Request Types
-export type RequestType = 'withdrawal' | 'purchase' | 'transfer';
-export type RequestStatus = 'pending' | 'approved' | 'rejected';
+export type RequestType = 'withdrawal' | 'purchase' | 'transfer' | 'maintenance' | 'disposal';
+export type RequestStatus = 'pending' | 'under_review' | 'approved' | 'rejected' | 'in_progress' | 'completed' | 'cancelled';
+export type RequestPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface Request {
   id: string;
-  type: RequestType;
-  requestedBy: string;
-  requestedByName: string;
-  department: string;
-  assetType?: string;
-  quantity?: number;
-  purpose: string;
-  requestDate: string;
+  requestType: RequestType;
+  assetId?: string;
+  itemName: string;
+  quantity: number;
+  estimatedCost?: number;
   status: RequestStatus;
+  priority: RequestPriority;
+  requestedBy: string;
+  department: string;
   approvedBy?: string;
-  approvalDate?: string;
+  purpose: string;
+  justification?: string;
+  specifications?: string;
+  approvalNotes?: string;
   rejectionReason?: string;
+  requestDate: string;
+  reviewDate?: string;
+  approvalDate?: string;
+  completionDate?: string;
+  createdAt: string;
+  updatedAt: string;
+  // Relations
+  asset?: Asset;
+  requester?: User;
+  approver?: User;
 }
 
 // Notification Types
