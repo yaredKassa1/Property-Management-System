@@ -12,28 +12,35 @@ interface SidebarProps {
 export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
 
-  const navigation = [
+  const baseNavigation = [
     { name: 'Dashboard', href: '/dashboard', icon: '📊', roles: ['all'] },
-    { name: 'Assets', href: '/assets', icon: '📦', roles: ['all'] },
-    { name: 'Assignments', href: '/assignments', icon: '👤', roles: ['property_officer', 'administrator'] },
-    { name: 'Transfers', href: '/transfers', icon: '🔄', roles: ['all'] },
-    { name: 'Returns', href: '/returns', icon: '↩️', roles: ['all'] },
-    { name: 'Requests', href: '/requests', icon: '📝', roles: ['all'] },
-    { name: 'Reports', href: '/reports', icon: '📈', roles: ['administrator', 'property_officer', 'vice_president'] },
-    { name: 'Users', href: '/users', icon: '👥', roles: ['administrator'] },
+    { name: 'Assets', href: '/assets', icon: '📦', roles: ['property_officer', 'approval_authority', 'purchase_department', 'quality_assurance', 'staff', 'vice_president'] },
+    { name: 'Assignments', href: '/assignments', icon: '👤', roles: ['property_officer'] },
+    { name: 'Transfers', href: '/transfers', icon: '🔄', roles: ['property_officer', 'staff', 'vice_president', 'approval_authority', 'purchase_department', 'quality_assurance'] },
+    { name: 'Returns', href: '/returns', icon: '↩️', roles: ['property_officer', 'staff', 'quality_assurance'] },
+    { name: 'Requests', href: '/requests', icon: '📝', roles: ['property_officer', 'staff', 'approval_authority', 'purchase_department', 'vice_president'] },
+    { name: 'Reports', href: '/reports', icon: '📈', roles: ['property_officer', 'vice_president', 'approval_authority'] },
   ];
+
+  const adminNavigation = [
+    { name: 'Dashboard', href: '/dashboard', icon: '📊', roles: ['administrator'] },
+    { name: 'User Management', href: '/users', icon: '👥', roles: ['administrator'] },
+    { name: 'Audit Logs', href: '/audit-logs', icon: '📋', roles: ['administrator'] },
+  ];
+
+  const navigation = user.role === 'administrator' ? adminNavigation : baseNavigation;
 
   const filteredNav = navigation.filter(
     (item) => item.roles.includes('all') || item.roles.includes(user.role)
   );
 
   return (
-    <div className="flex flex-col w-64 bg-gray-900 min-h-screen">
-      <div className="flex items-center justify-center h-16 bg-gray-800">
+    <div className="flex flex-col w-64 bg-gray-900 h-screen fixed left-0 top-0 overflow-y-auto">
+      <div className="flex items-center justify-center h-16 bg-gray-800 flex-shrink-0">
         <h1 className="text-white text-xl font-bold">WDUPMS</h1>
       </div>
       
-      <nav className="flex-1 px-4 py-6 space-y-2">
+      <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
         {filteredNav.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (

@@ -3,10 +3,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { isAuthenticated, getUser } from '@/lib/auth';
+import { isAuthenticated, getUser, acquireNavigationLock, releaseNavigationLock } from '@/lib/auth';
 import { User } from '@/lib/types';
-import { Header } from '@/components/layout/Header'; // adjust path if needed
-// import Sidebar or other layout components if you have them
+import { Header } from '@/components/layout/Header';
+import { Sidebar } from '@/components/layout/Sidebar';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -31,18 +31,30 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       console.log('   user →', user);
 
       if (authenticated && user) {
+        console.log('[DashboardLayout] ✓ Authenticated - showing dashboard');
         setCurrentUser(user);
         setIsAuthorized(true);
+        setIsChecking(false);
+        // Release any navigation lock since we're successfully showing the page
+        releaseNavigationLock();
       } else {
-        console.log('[DashboardLayout] → Not authenticated → redirecting to /login');
-        router.replace('/login');
+        console.log('[DashboardLayout] ✗ Not authenticated');
+        setIsChecking(false);
+        setIsAuthorized(false);
+        // Try to acquire lock before redirecting
+        if (acquireNavigationLock()) {
+          console.log('[DashboardLayout] → Redirecting to /login');
+          router.replace('/login');
+          // Release lock after a delay
+          setTimeout(() => releaseNavigationLock(), 500);
+        } else {
+          console.log('[DashboardLayout] Navigation locked, blocking redirect');
+        }
       }
-
-      setIsChecking(false);
     };
 
-    // Give localStorage a tiny moment to be ready (helps in some edge cases)
-    const timer = setTimeout(checkAuthentication, 80);
+    // Give localStorage a moment to be ready after navigation
+    const timer = setTimeout(checkAuthentication, 50);
 
     return () => clearTimeout(timer);
   }, [router]);
@@ -71,11 +83,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Optional: Sidebar + Main content wrapper */}
       <div className="flex flex-1">
-        {/* Sidebar (uncomment/add when you have it) */}
-        {/* <Sidebar /> */}
+        <Sidebar user={currentUser} />
 
         {/* Main content area */}
-        <main className="flex-1 p-6 md:p-8 overflow-auto">
+        <main className="flex-1 p-6 md:p-8 overflow-auto ml-64">
           {children}
         </main>
       </div>

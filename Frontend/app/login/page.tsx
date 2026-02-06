@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserRole } from '@/lib/types';
-import { setAuthToken, setUser, isAuthenticated } from '@/lib/auth';
+import { setAuthToken, setUser, isAuthenticated, acquireNavigationLock, releaseNavigationLock } from '@/lib/auth';
+import { api } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,13 +18,33 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-  // Redirect if already logged in
+  // Check authentication status on mount
   useEffect(() => {
-    if (isAuthenticated()) {
-      console.log('[Login] Already authenticated → redirecting to /dashboard');
-      router.replace('/dashboard');
-    }
+    // Only redirect if already authenticated
+    const checkAuth = () => {
+      if (isAuthenticated()) {
+        console.log('[Login] Already authenticated');
+        // Try to acquire lock before redirecting
+        if (acquireNavigationLock()) {
+          console.log('[Login] → Redirecting to /dashboard');
+          router.replace('/dashboard');
+          // Release lock after a delay
+          setTimeout(() => releaseNavigationLock(), 500);
+        } else {
+          console.log('[Login] Navigation locked, staying on page');
+          setIsCheckingAuth(false);
+        }
+      } else {
+        console.log('[Login] Not authenticated → showing login form');
+        setIsCheckingAuth(false);
+      }
+    };
+    
+    // Small delay to ensure localStorage is ready
+    const timer = setTimeout(checkAuth, 50);
+    return () => clearTimeout(timer);
   }, [router]);
 
   const roleOptions = [
@@ -42,59 +63,55 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Create mock user
-      const mockUser = {
-        id: '1',
-        username: formData.username,
-        fullName: formData.username.charAt(0).toUpperCase() + formData.username.slice(1),
-        email: `${formData.username}@woldia.edu.et`,
-        role: formData.role,
-        department: 'Mock Department',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      // Call real backend API
+      const response: any = await api.login(formData.username, formData.password);
 
-      const mockToken = `mock-jwt-token-${Date.now()}`;
+      console.log('[Login] API Response:', response);
 
-      // Remove only the auth-related keys (safer than clear())
+      // Extract token and user from response
+      const token = response.token;
+      const user = response.user;
+
+      if (!token || !user) {
+        throw new Error('Invalid response from server');
+      }
+
+      // Remove only the auth-related keys
       localStorage.removeItem('token');
       localStorage.removeItem('user');
 
       // Save using helpers
-      setAuthToken(mockToken);
-      setUser(mockUser);
+      setAuthToken(token);
+      setUser(user);
 
-      // Also save directly (extra safety in some environments)
-      localStorage.setItem('token', mockToken);
-      localStorage.setItem('user', JSON.stringify(mockUser));
+      console.log('[Login] Login successful:', { username: user.username, role: user.role });
+      console.log('[Login] Token saved:', !!localStorage.getItem('token'));
+      console.log('[Login] User saved:', !!localStorage.getItem('user'));
 
-      // ───────────────────────────────────────────────
-      // Debug: check right after saving
-      console.log('[Login] After save:');
-      console.log('  token  →', localStorage.getItem('token'));
-      console.log('  user   →', localStorage.getItem('user'));
-
-      // Small delay to help localStorage flush (especially useful in dev)
-      await new Promise((resolve) => setTimeout(resolve, 150));
-
-      // Final check before navigation
-      console.log('[Login] After delay:');
-      console.log('  token  →', localStorage.getItem('token'));
-      console.log('  user   →', localStorage.getItem('user'));
-      console.log('  isAuthenticated →', isAuthenticated());
-
-      // Navigate
-      router.push('/dashboard');
-      // Alternative (sometimes more reliable in dev):
-      // window.location.href = '/dashboard';
+      // Acquire navigation lock and redirect
+      acquireNavigationLock();
+      router.replace('/dashboard');
+      // Release lock after navigation completes
+      setTimeout(() => releaseNavigationLock(), 500);
     } catch (err: any) {
       console.error('[Login] Error:', err);
-      setError(err.message || 'Login failed. Please try again.');
+      setError(err.message || 'Login failed. Please check your credentials and try again.');
     } finally {
       setLoading(false);
     }
   };
+
+  // Show loading while checking auth
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <p className="text-gray-500">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex">

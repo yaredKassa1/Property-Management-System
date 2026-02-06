@@ -52,3 +52,34 @@ export function hasRole(user: User | null, roles: string[]): boolean {
   if (!user) return false;
   return roles.includes(user.role);
 }
+
+// Navigation lock to prevent redirect loops
+const NAV_LOCK_KEY = '_nav_lock';
+const NAV_LOCK_DURATION = 1000; // 1 second
+
+export function acquireNavigationLock(): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  const lockData = sessionStorage.getItem(NAV_LOCK_KEY);
+  if (lockData) {
+    const { timestamp } = JSON.parse(lockData);
+    const now = Date.now();
+    // If lock is still valid (within duration), deny
+    if (now - timestamp < NAV_LOCK_DURATION) {
+      console.log('[NavLock] Lock already held, denying navigation');
+      return false;
+    }
+  }
+  
+  // Acquire lock
+  sessionStorage.setItem(NAV_LOCK_KEY, JSON.stringify({ timestamp: Date.now() }));
+  console.log('[NavLock] Lock acquired');
+  return true;
+}
+
+export function releaseNavigationLock(): void {
+  if (typeof window !== 'undefined') {
+    sessionStorage.removeItem(NAV_LOCK_KEY);
+    console.log('[NavLock] Lock released');
+  }
+}

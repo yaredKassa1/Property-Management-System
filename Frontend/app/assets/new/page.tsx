@@ -14,7 +14,9 @@ export default function NewAssetPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [validationErrors, setValidationErrors] = useState<any[]>([]);
   const [formData, setFormData] = useState({
+    assetId: '',
     name: '',
     category: 'fixed' as AssetCategory,
     serialNumber: '',
@@ -42,6 +44,7 @@ export default function NewAssetPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+    setValidationErrors([]);
     setLoading(true);
 
     try {
@@ -51,7 +54,13 @@ export default function NewAssetPage() {
       });
       router.push('/assets');
     } catch (err: any) {
+      console.error('Asset creation error:', err);
       setError(err.message || 'Failed to register asset');
+      
+      // If there are validation errors, display them
+      if (err.errors && Array.isArray(err.errors)) {
+        setValidationErrors(err.errors);
+      }
     } finally {
       setLoading(false);
     }
@@ -68,6 +77,14 @@ export default function NewAssetPage() {
         <Card>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Input
+                label="Asset ID"
+                required
+                placeholder="e.g., WDU-2024-001"
+                value={formData.assetId}
+                onChange={(e) => setFormData({ ...formData, assetId: e.target.value })}
+              />
+
               <Input
                 label="Asset Name"
                 required
@@ -140,16 +157,26 @@ export default function NewAssetPage() {
                 Description
               </label>
               <textarea
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-400"
                 rows={4}
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Enter asset description..."
               />
             </div>
 
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-                {error}
+                <p className="font-semibold">{error}</p>
+                {validationErrors.length > 0 && (
+                  <ul className="mt-2 list-disc list-inside space-y-1">
+                    {validationErrors.map((err, index) => (
+                      <li key={index} className="text-sm">
+                        <span className="font-medium">{err.field}:</span> {err.message}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
 
