@@ -18,13 +18,13 @@ interface Asset {
   status: string;
   condition: string;
   location: string;
-  department: string;
+  workUnit: string;
   assignedTo?: string;
   assignedUser?: {
     id: string;
     fullName: string;
     email: string;
-    department: string;
+    workUnit: string;
   };
 }
 
@@ -33,7 +33,7 @@ interface User {
   fullName: string;
   email: string;
   username: string;
-  department: string;
+  workUnit: string;
   role: string;
 }
 
@@ -47,7 +47,7 @@ export default function AssignmentsPage() {
   // Filters
   const [searchAsset, setSearchAsset] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [workUnitFilter, setWorkUnitFilter] = useState('all');
   
   // Assignment Modal
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -168,14 +168,14 @@ export default function AssignmentsPage() {
       (statusFilter === 'available' && asset.status === 'available');
     
     const matchesDepartment = 
-      departmentFilter === 'all' || 
-      asset.department === departmentFilter;
+      workUnitFilter === 'all' || 
+      asset.workUnit === workUnitFilter;
     
     return matchesSearch && matchesStatus && matchesDepartment;
   });
 
-  // Get unique departments
-  const departments = Array.from(new Set(assets.map(a => a.department).filter(Boolean)));
+  // Get unique work units
+  const workUnits = Array.from(new Set(assets.map(a => a.workUnit).filter(Boolean)));
 
   const assignedAssets = filteredAssets.filter(a => a.status === 'assigned');
   const availableAssets = filteredAssets.filter(a => a.status === 'available');
@@ -269,11 +269,11 @@ export default function AssignmentsPage() {
 
               <select
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
-                value={departmentFilter}
-                onChange={(e) => setDepartmentFilter(e.target.value)}
+                value={workUnitFilter}
+                onChange={(e) => setWorkUnitFilter(e.target.value)}
               >
-                <option value="all">All Departments</option>
-                {departments.length > 0 && departments.map(dept => (
+                <option value="all">All Work Units</option>
+                {workUnits.length > 0 && workUnits.map(dept => (
                   <option key={dept} value={dept}>{dept}</option>
                 ))}
               </select>
@@ -373,7 +373,7 @@ export default function AssignmentsPage() {
                               {asset.assignedUser.fullName}
                             </div>
                             <div className="text-sm text-gray-500">
-                              {asset.assignedUser.department || 'No department'}
+                              {asset.assignedUser.workUnit || 'No work unit'}
                             </div>
                           </div>
                         ) : (
@@ -461,7 +461,7 @@ export default function AssignmentsPage() {
                       {users.length > 0 ? (
                         users.map((user) => (
                           <option key={user.id} value={user.id}>
-                            {user.fullName} ({user.username}) - {user.department || 'No Dept'}
+                            {user.fullName} ({user.username}) - {user.workUnit || 'No Work Unit'}
                           </option>
                         ))
                       ) : (

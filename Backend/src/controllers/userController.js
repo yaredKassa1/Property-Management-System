@@ -10,7 +10,7 @@ const getUsers = async (req, res, next) => {
     const {
       role,
       isActive,
-      department,
+      workUnit,
       search,
       page = 1,
       limit = 10,
@@ -22,12 +22,13 @@ const getUsers = async (req, res, next) => {
 
     if (role) where.role = role;
     if (isActive !== undefined) where.isActive = isActive === 'true';
-    if (department) where.department = department;
+    if (workUnit) where.workUnit = workUnit;
 
     if (search) {
       where[Op.or] = [
         { username: { [Op.iLike]: `%${search}%` } },
-        { fullName: { [Op.iLike]: `%${search}%` } },
+        { firstName: { [Op.iLike]: `%${search}%` } },
+        { lastName: { [Op.iLike]: `%${search}%` } },
         { email: { [Op.iLike]: `%${search}%` } }
       ];
     }
@@ -93,9 +94,12 @@ const createUser = async (req, res, next) => {
       username,
       email,
       password,
-      fullName,
+      firstName,
+      middleName,
+      lastName,
+      phoneNumber,
       role,
-      department,
+      workUnit,
       isActive
     } = req.body;
 
@@ -122,9 +126,12 @@ const createUser = async (req, res, next) => {
       username,
       email,
       password,
-      fullName,
+      firstName,
+      middleName,
+      lastName,
+      phoneNumber,
       role: role || 'staff',
-      department,
+      workUnit,
       isActive: isActive !== undefined ? isActive : true
     });
 
@@ -137,7 +144,7 @@ const createUser = async (req, res, next) => {
       'CREATE_USER',
       'user',
       user.id,
-      { username: user.username, role: user.role, department: user.department },
+      { username: user.username, role: user.role, workUnit: user.workUnit },
       req
     );
 
@@ -376,16 +383,16 @@ const getUserStats = async (req, res, next) => {
       group: ['role']
     });
 
-    // Get department breakdown
-    const departmentStats = await db.User.findAll({
+    // Get work unit breakdown
+    const workUnitStats = await db.User.findAll({
       attributes: [
-        'department',
+        'workUnit',
         [db.sequelize.fn('COUNT', db.sequelize.col('id')), 'count']
       ],
       where: {
-        department: { [Op.ne]: null }
+        workUnit: { [Op.ne]: null }
       },
-      group: ['department']
+      group: ['workUnit']
     });
 
     res.status(200).json({
@@ -395,8 +402,33 @@ const getUserStats = async (req, res, next) => {
         activeUsers,
         inactiveUsers,
         roleBreakdown: roleStats,
-        departmentBreakdown: departmentStats
+        workUnitBreakdown: workUnitStats
       }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get approval authorities (users with approval_authority or vice_president role)
+// @route   GET /api/users/approval-authorities
+// @access  Private
+const getApprovalAuthorities = async (req, res, next) => {
+  try {
+    const approvalAuthorities = await db.User.findAll({
+      where: {
+        role: {
+          [Op.in]: ['approval_authority', 'vice_president']
+        },
+        isActive: true
+      },
+      attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'role', 'workUnit', 'email'],
+      order: [['firstName', 'ASC'], ['lastName', 'ASC']]
+    });
+
+    res.status(200).json({
+      success: true,
+      data: approvalAuthorities
     });
   } catch (error) {
     next(error);
@@ -410,5 +442,6 @@ module.exports = {
   updateUser,
   deleteUser,
   resetPassword,
-  getUserStats
+  getUserStats,
+  getApprovalAuthorities
 };

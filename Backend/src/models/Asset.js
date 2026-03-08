@@ -43,9 +43,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING(200),
       allowNull: false
     },
-    department: {
+    workUnit: {
       type: DataTypes.STRING(100),
-      allowNull: true
+      allowNull: true,
+      comment: 'Work unit - can be department, college, institute, or administrative unit'
     },
     status: {
       type: DataTypes.ENUM(
@@ -111,7 +112,7 @@ module.exports = (sequelize, DataTypes) => {
         fields: ['category']
       },
       {
-        fields: ['department']
+        fields: ['workUnit']
       },
       {
         fields: ['assignedTo']

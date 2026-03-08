@@ -55,7 +55,7 @@ module.exports = (sequelize, DataTypes) => {
         'cancelled'
       ),
       allowNull: false,
-      defaultValue: 'pending'
+      defaultValue: 'in_progress'
     },
     priority: {
       type: DataTypes.ENUM(
@@ -77,9 +77,21 @@ module.exports = (sequelize, DataTypes) => {
       onUpdate: 'CASCADE',
       onDelete: 'RESTRICT'
     },
-    department: {
+    workUnit: {
       type: DataTypes.STRING(100),
-      allowNull: false
+      allowNull: false,
+      comment: 'Work unit - can be department, college, institute, or administrative unit'
+    },
+    approvalAuthorityId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: 'users',
+        key: 'id'
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL',
+      comment: 'Assigned approval authority who can approve this request'
     },
     approvedBy: {
       type: DataTypes.UUID,
@@ -112,9 +124,40 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.TEXT,
       allowNull: true
     },
+    permittedAmount: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: 'Amount permitted by approval authority'
+    },
     rejectionReason: {
       type: DataTypes.TEXT,
       allowNull: true
+    },
+    requesterSignature: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: 'Digital signature of requestor'
+    },
+    approverSignature: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: 'Digital signature of approval authority'
+    },
+    completerSignature: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: 'Digital signature of property officer who completed'
+    },
+    completedBy: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: 'users',
+        key: 'id'
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL',
+      comment: 'Property officer who completed the request'
     },
     requestDate: {
       type: DataTypes.DATE,
@@ -150,7 +193,7 @@ module.exports = (sequelize, DataTypes) => {
         fields: ['requestedBy']
       },
       {
-        fields: ['department']
+        fields: ['workUnit']
       },
       {
         fields: ['requestDate']

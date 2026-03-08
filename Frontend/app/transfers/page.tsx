@@ -31,11 +31,16 @@ export default function TransfersPage() {
   };
 
   const handleApprove = async (id: string) => {
+    const signature = prompt('Please enter your full name to sign the transfer approval:');
+    if (!signature) return;
+
     try {
-      await api.approveTransfer(id);
+      await api.approveTransfer(id, { recipientSignature: signature });
+      alert('Transfer approved successfully!');
       loadTransfers();
     } catch (error) {
       console.error('Failed to approve transfer:', error);
+      alert('Failed to approve transfer');
     }
   };
 
@@ -51,14 +56,41 @@ export default function TransfersPage() {
     }
   };
 
-  const canApprove = user?.role === 'vice_president' || user?.role === 'approval_authority';
+  const handleComplete = async (id: string) => {
+    const signature = prompt('Please enter your full name to sign the transfer completion:');
+    if (!signature) return;
+
+    try {
+      await api.completeTransfer(id, { propertyOfficerSignature: signature });
+      alert('Transfer completed successfully!');
+      loadTransfers();
+    } catch (error) {
+      console.error('Failed to complete transfer:', error);
+      alert('Failed to complete transfer');
+    }
+  };
+
+  const canApprove = (transfer: Transfer) => {
+    // Only the recipient (toUser) can approve the transfer
+    return transfer.toUserId === user?.id && transfer.status === 'pending';
+  };
+
+  const canComplete = (transfer: Transfer) => {
+    // Only property officer can complete approved transfers
+    return user?.role === 'property_officer' && transfer.status === 'approved';
+  };
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Asset Transfers</h1>
-          <p className="text-gray-600">Manage asset transfer requests</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Asset Transfers</h1>
+            <p className="text-gray-600">Manage asset transfer requests</p>
+          </div>
+          <Button onClick={() => window.location.href = '/transfers/new'}>
+            New Transfer
+          </Button>
         </div>
 
         <Card>
@@ -79,17 +111,17 @@ export default function TransfersPage() {
               <TableBody>
                 {transfers.map((transfer) => (
                   <TableRow key={transfer.id}>
-                    <TableCell className="font-medium">{transfer.assetName}</TableCell>
+                    <TableCell className="font-medium">{transfer.asset?.name || transfer.assetName || 'N/A'}</TableCell>
                     <TableCell>
                       <div>
-                        <p className="font-medium">{transfer.fromUserName}</p>
-                        <p className="text-xs text-gray-500">{transfer.fromDepartment}</p>
+                        <p className="font-medium">{transfer.fromUser ? `${transfer.fromUser.firstName} ${transfer.fromUser.lastName}` : transfer.fromUserName || 'Storage'}</p>
+                        <p className="text-xs text-gray-500">{transfer.fromWorkUnit || transfer.fromUser?.workUnit || 'N/A'}</p>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div>
-                        <p className="font-medium">{transfer.toUserName}</p>
-                        <p className="text-xs text-gray-500">{transfer.toDepartment}</p>
+                        <p className="font-medium">{transfer.toUser ? `${transfer.toUser.firstName} ${transfer.toUser.lastName}` : transfer.toUserName || 'N/A'}</p>
+                        <p className="text-xs text-gray-500">{transfer.toWorkUnit || transfer.toUser?.workUnit || 'N/A'}</p>
                       </div>
                     </TableCell>
                     <TableCell>{formatDate(transfer.requestDate)}</TableCell>
@@ -99,24 +131,42 @@ export default function TransfersPage() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      {transfer.status === 'pending' && canApprove && (
-                        <div className="flex space-x-2">
+                      <div className="flex space-x-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => window.open(`/transfers/${transfer.id}/print`, '_blank')}
+                        >
+                          Print
+                        </Button>
+                        {canApprove(transfer) && (
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() => handleApprove(transfer.id)}
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="danger"
+                              onClick={() => handleReject(transfer.id)}
+                            >
+                              Reject
+                            </Button>
+                          </>
+                        )}
+                        {canComplete(transfer) && (
                           <Button
                             size="sm"
-                            onClick={() => handleApprove(transfer.id)}
+                            onClick={() => handleComplete(transfer.id)}
                           >
-                            Approve
+                            Complete
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="danger"
-                            onClick={() => handleReject(transfer.id)}
-                          >
-                            Reject
-                          </Button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </TableCell>
+
                   </TableRow>
                 ))}
               </TableBody>

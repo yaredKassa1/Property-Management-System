@@ -49,13 +49,13 @@ export function Header({ user }: HeaderProps) {
           >
             {/* Avatar */}
             <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-semibold text-lg shadow-md">
-              {user.fullName.charAt(0).toUpperCase()}
+              {user.firstName ? user.firstName.charAt(0).toUpperCase() : (user.fullName ? user.fullName.charAt(0).toUpperCase() : 'U')}
             </div>
 
             {/* User Info */}
             <div className="text-left hidden md:block">
               <p className="text-sm font-medium text-gray-800">
-                {user.fullName}
+                {user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.fullName || user.username}
               </p>
               <p className="text-xs text-gray-500">
                 {getRoleLabel(user.role)}

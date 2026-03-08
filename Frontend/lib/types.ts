@@ -12,11 +12,16 @@ export interface User {
   id: string;
   username: string;
   email: string;
-  fullName: string;
+  firstName: string;
+  middleName?: string;
+  lastName: string;
+  phoneNumber?: string;
   role: UserRole;
-  department?: string;
+  workUnit?: string;
   isActive: boolean;
   createdAt: string;
+  // Computed property for backward compatibility
+  fullName?: string;
 }
 
 export interface AuthResponse {
@@ -38,7 +43,7 @@ export interface Asset {
   value: number;
   purchaseDate: string;
   location: string;
-  department?: string;
+  workUnit?: string;
   status: AssetStatus;
   condition: AssetCondition;
   assignedTo?: string;
@@ -56,7 +61,7 @@ export interface Assignment {
   assetName: string;
   assigneeId: string;
   assigneeName: string;
-  department: string;
+  workUnit: string;
   assignmentDate: string;
   expectedReturnDate?: string;
   conditionAtAssignment: AssetCondition;
@@ -74,8 +79,8 @@ export interface Transfer {
   toUserId: string;
   fromLocation: string;
   toLocation: string;
-  fromDepartment?: string;
-  toDepartment?: string;
+  fromWorkUnit?: string;
+  toWorkUnit?: string;
   status: TransferStatus;
   requestedBy: string;
   approvedBy?: string;
@@ -93,6 +98,10 @@ export interface Transfer {
   toUser?: User;
   requester?: User;
   approver?: User;
+  // Computed fields for display
+  assetName?: string;
+  fromUserName?: string;
+  toUserName?: string;
 }
 
 // Return Types
@@ -137,13 +146,18 @@ export interface Request {
   status: RequestStatus;
   priority: RequestPriority;
   requestedBy: string;
-  department: string;
+  workUnit: string;
   approvedBy?: string;
+  completedBy?: string;
   purpose: string;
   justification?: string;
   specifications?: string;
   approvalNotes?: string;
+  permittedAmount?: number;
   rejectionReason?: string;
+  requesterSignature?: string;
+  approverSignature?: string;
+  completerSignature?: string;
   requestDate: string;
   reviewDate?: string;
   approvalDate?: string;
@@ -154,6 +168,7 @@ export interface Request {
   asset?: Asset;
   requester?: User;
   approver?: User;
+  completer?: User;
 }
 
 // Notification Types
@@ -180,7 +195,7 @@ export interface ReportFilter {
   type: ReportType;
   startDate?: string;
   endDate?: string;
-  department?: string;
+  workUnit?: string;
   category?: AssetCategory;
   status?: AssetStatus;
 }

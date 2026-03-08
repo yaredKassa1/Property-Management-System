@@ -112,6 +112,10 @@ class ApiClient {
     return this.request(`/transfers/${id}`);
   }
 
+  async getTransferById(id: string) {
+    return this.request(`/transfers/${id}`);
+  }
+
   async createTransfer(data: any) {
     return this.request('/transfers', {
       method: 'POST',
@@ -119,10 +123,10 @@ class ApiClient {
     });
   }
 
-  async approveTransfer(id: string, notes?: string) {
+  async approveTransfer(id: string, data?: { notes?: string; recipientSignature?: string }) {
     return this.request(`/transfers/${id}/approve`, {
       method: 'POST',
-      body: JSON.stringify({ notes }),
+      body: JSON.stringify(data || {}),
     });
   }
 
@@ -133,9 +137,10 @@ class ApiClient {
     });
   }
 
-  async completeTransfer(id: string) {
+  async completeTransfer(id: string, data?: { propertyOfficerSignature?: string }) {
     return this.request(`/transfers/${id}/complete`, {
       method: 'POST',
+      body: JSON.stringify(data || {}),
     });
   }
 
@@ -218,10 +223,10 @@ class ApiClient {
     });
   }
 
-  async approveRequest(id: string, approvalNotes?: string) {
+  async approveRequest(id: string, approvalNotes?: string, permittedAmount?: number, approverSignature?: string) {
     return this.request(`/requests/${id}/approve`, {
       method: 'POST',
-      body: JSON.stringify({ approvalNotes }),
+      body: JSON.stringify({ approvalNotes, permittedAmount, approverSignature }),
     });
   }
 
@@ -232,9 +237,10 @@ class ApiClient {
     });
   }
 
-  async completeRequest(id: string) {
+  async completeRequest(id: string, completerSignature?: string) {
     return this.request(`/requests/${id}/complete`, {
       method: 'POST',
+      body: JSON.stringify({ completerSignature }),
     });
   }
 
@@ -314,6 +320,10 @@ class ApiClient {
   // User endpoints
   async getUsers() {
     return this.request('/users');
+  }
+
+  async getApprovalAuthorities() {
+    return this.request('/users/approval-authorities');
   }
 
   async createUser(data: any) {

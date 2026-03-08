@@ -23,7 +23,7 @@ export default function NewAssetPage() {
     value: '',
     purchaseDate: '',
     location: '',
-    department: '',
+    workUnit: '',
     condition: 'excellent' as AssetCondition,
     description: '',
     warrantyExpiry: '',
@@ -132,8 +132,8 @@ export default function NewAssetPage() {
 
               <Input
                 label="Department"
-                value={formData.department}
-                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                value={formData.workUnit}
+                onChange={(e) => setFormData({ ...formData, workUnit: e.target.value })}
               />
 
               <Select

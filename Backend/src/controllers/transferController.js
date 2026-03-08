@@ -1,5 +1,12 @@
 const { Op } = require('sequelize');
 const db = require('../models');
+const { 
+  notifyTransferInitiated, 
+  notifyTransferApproved, 
+  notifyTransferCompleted, 
+  notifyTransferRejected 
+} = require('../utils/emailService');
+const { logTransferHistory, getTransferHistory } = require('../utils/transferHistory');
 
 // @desc    Get all transfers with filtering
 // @route   GET /api/transfers
@@ -24,6 +31,18 @@ const getTransfers = async (req, res, next) => {
     if (fromUserId) where.fromUserId = fromUserId;
     if (assetId) where.assetId = assetId;
 
+    // Role-based filtering: Staff and regular users only see transfers they're involved in
+    // Property officers, approval authorities, admins, and vice presidents see all
+    const allowedToSeeAll = ['property_officer', 'approval_authority', 'administrator', 'vice_president', 'purchase_department', 'quality_assurance'];
+    if (!allowedToSeeAll.includes(req.user.role)) {
+      // Staff can only see transfers where they are the sender, receiver, or requester
+      where[Op.or] = [
+        { fromUserId: req.user.id },
+        { toUserId: req.user.id },
+        { requestedBy: req.user.id }
+      ];
+    }
+
     const offset = (page - 1) * limit;
 
     const { count, rows } = await db.Transfer.findAndCountAll({
@@ -40,22 +59,22 @@ const getTransfers = async (req, res, next) => {
         {
           model: db.User,
           as: 'fromUser',
-          attributes: ['id', 'username', 'fullName', 'department']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'workUnit']
         },
         {
           model: db.User,
           as: 'toUser',
-          attributes: ['id', 'username', 'fullName', 'department']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'workUnit']
         },
         {
           model: db.User,
           as: 'requester',
-          attributes: ['id', 'username', 'fullName', 'role']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'role']
         },
         {
           model: db.User,
           as: 'approver',
-          attributes: ['id', 'username', 'fullName', 'role']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'role']
         }
       ]
     });
@@ -91,22 +110,22 @@ const getTransferById = async (req, res, next) => {
         {
           model: db.User,
           as: 'fromUser',
-          attributes: ['id', 'username', 'fullName', 'email', 'department']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'email', 'workUnit']
         },
         {
           model: db.User,
           as: 'toUser',
-          attributes: ['id', 'username', 'fullName', 'email', 'department']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'email', 'workUnit']
         },
         {
           model: db.User,
           as: 'requester',
-          attributes: ['id', 'username', 'fullName', 'role']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'role']
         },
         {
           model: db.User,
           as: 'approver',
-          attributes: ['id', 'username', 'fullName', 'role']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'role']
         }
       ]
     });
@@ -118,9 +137,15 @@ const getTransferById = async (req, res, next) => {
       });
     }
 
+    // Get transfer history
+    const history = await getTransferHistory(id);
+
     res.status(200).json({
       success: true,
-      data: transfer
+      data: {
+        ...transfer.toJSON(),
+        history
+      }
     });
   } catch (error) {
     next(error);
@@ -138,10 +163,11 @@ const createTransfer = async (req, res, next) => {
       toUserId,
       fromLocation,
       toLocation,
-      fromDepartment,
-      toDepartment,
+      fromWorkUnit,
+      toWorkUnit,
       reason,
-      notes
+      notes,
+      transferorSignature
     } = req.body;
 
     // Check if asset exists and is available for transfer
@@ -181,30 +207,51 @@ const createTransfer = async (req, res, next) => {
       }
     }
 
-    // Create transfer
+    // Create transfer with transferor signature
     const transfer = await db.Transfer.create({
       assetId,
       fromUserId,
       toUserId,
       fromLocation,
       toLocation,
-      fromDepartment,
-      toDepartment,
+      fromWorkUnit,
+      toWorkUnit,
       reason,
       notes,
       requestedBy: req.user.id,
-      requestDate: new Date()
+      requestDate: new Date(),
+      transferorSignature: transferorSignature || null
     });
 
     // Fetch with relations
     const createdTransfer = await db.Transfer.findByPk(transfer.id, {
       include: [
         { model: db.Asset, as: 'asset' },
-        { model: db.User, as: 'fromUser', attributes: ['id', 'username', 'fullName'] },
-        { model: db.User, as: 'toUser', attributes: ['id', 'username', 'fullName'] },
-        { model: db.User, as: 'requester', attributes: ['id', 'username', 'fullName'] }
+        { model: db.User, as: 'fromUser', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'email', 'workUnit'] },
+        { model: db.User, as: 'toUser', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'email', 'workUnit'] },
+        { model: db.User, as: 'requester', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName'] }
       ]
     });
+
+    // Log history
+    await logTransferHistory({
+      transferId: transfer.id,
+      action: 'created',
+      performedBy: req.user.id,
+      previousStatus: null,
+      newStatus: 'pending',
+      notes: `Transfer initiated from ${createdTransfer.fromUser.firstName} to ${createdTransfer.toUser.firstName}`,
+      metadata: { transferorSignature: transferorSignature ? 'signed' : 'unsigned' },
+      req
+    });
+
+    // Send email notification to recipient
+    try {
+      await notifyTransferInitiated(createdTransfer, createdTransfer.fromUser, createdTransfer.toUser);
+    } catch (emailError) {
+      console.error('Failed to send email notification:', emailError);
+      // Don't fail the request if email fails
+    }
 
     res.status(201).json({
       success: true,
@@ -216,13 +263,13 @@ const createTransfer = async (req, res, next) => {
   }
 };
 
-// @desc    Approve transfer
+// @desc    Approve transfer (recipient accepts)
 // @route   POST /api/transfers/:id/approve
-// @access  Private (vice_president, administrator)
+// @access  Private (recipient user - toUserId)
 const approveTransfer = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { notes } = req.body;
+    const { notes, recipientSignature } = req.body;
 
     const transfer = await db.Transfer.findByPk(id);
 
@@ -233,6 +280,14 @@ const approveTransfer = async (req, res, next) => {
       });
     }
 
+    // Only the recipient (toUser) can approve the transfer
+    if (transfer.toUserId !== req.user.id && !['administrator'].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the recipient can approve this transfer'
+      });
+    }
+
     if (transfer.status !== 'pending') {
       return res.status(400).json({
         success: false,
@@ -240,11 +295,12 @@ const approveTransfer = async (req, res, next) => {
       });
     }
 
-    // Update transfer status
+    // Update transfer status with recipient signature
     await transfer.update({
       status: 'approved',
       approvedBy: req.user.id,
       approvalDate: new Date(),
+      recipientSignature: recipientSignature || null,
       notes: notes || transfer.notes
     });
 
@@ -255,11 +311,36 @@ const approveTransfer = async (req, res, next) => {
     const updatedTransfer = await db.Transfer.findByPk(id, {
       include: [
         { model: db.Asset, as: 'asset' },
-        { model: db.User, as: 'fromUser', attributes: ['id', 'username', 'fullName'] },
-        { model: db.User, as: 'toUser', attributes: ['id', 'username', 'fullName'] },
-        { model: db.User, as: 'approver', attributes: ['id', 'username', 'fullName'] }
+        { model: db.User, as: 'fromUser', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'email', 'workUnit'] },
+        { model: db.User, as: 'toUser', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'email', 'workUnit'] },
+        { model: db.User, as: 'approver', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName'] }
       ]
     });
+
+    // Log history
+    await logTransferHistory({
+      transferId: id,
+      action: 'approved',
+      performedBy: req.user.id,
+      previousStatus: 'pending',
+      newStatus: 'approved',
+      notes: notes || 'Transfer approved by recipient',
+      metadata: { recipientSignature: recipientSignature ? 'signed' : 'unsigned' },
+      req
+    });
+
+    // Get property officers for notification
+    const propertyOfficers = await db.User.findAll({
+      where: { role: 'property_officer', isActive: true },
+      attributes: ['id', 'email', 'firstName', 'lastName']
+    });
+
+    // Send email notifications
+    try {
+      await notifyTransferApproved(updatedTransfer, updatedTransfer.fromUser, updatedTransfer.toUser, propertyOfficers);
+    } catch (emailError) {
+      console.error('Failed to send email notification:', emailError);
+    }
 
     res.status(200).json({
       success: true,
@@ -312,10 +393,30 @@ const rejectTransfer = async (req, res, next) => {
     const updatedTransfer = await db.Transfer.findByPk(id, {
       include: [
         { model: db.Asset, as: 'asset' },
-        { model: db.User, as: 'toUser', attributes: ['id', 'username', 'fullName'] },
-        { model: db.User, as: 'approver', attributes: ['id', 'username', 'fullName'] }
+        { model: db.User, as: 'fromUser', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'email'] },
+        { model: db.User, as: 'toUser', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName'] },
+        { model: db.User, as: 'approver', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName'] }
       ]
     });
+
+    // Log history
+    await logTransferHistory({
+      transferId: id,
+      action: 'rejected',
+      performedBy: req.user.id,
+      previousStatus: 'pending',
+      newStatus: 'rejected',
+      notes: rejectionReason,
+      metadata: {},
+      req
+    });
+
+    // Send email notification to transferor
+    try {
+      await notifyTransferRejected(updatedTransfer, updatedTransfer.fromUser, updatedTransfer.toUser, rejectionReason);
+    } catch (emailError) {
+      console.error('Failed to send email notification:', emailError);
+    }
 
     res.status(200).json({
       success: true,
@@ -329,10 +430,11 @@ const rejectTransfer = async (req, res, next) => {
 
 // @desc    Complete transfer
 // @route   POST /api/transfers/:id/complete
-// @access  Private (property_officer, administrator)
+// @access  Private (property_officer, administrator only - NO vice_president)
 const completeTransfer = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const { propertyOfficerSignature } = req.body;
 
     const transfer = await db.Transfer.findByPk(id);
 
@@ -343,6 +445,14 @@ const completeTransfer = async (req, res, next) => {
       });
     }
 
+    // Only property officers and administrators can complete transfers
+    if (!['property_officer', 'administrator'].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only property officers can complete transfers'
+      });
+    }
+
     if (transfer.status !== 'approved' && transfer.status !== 'in_transit') {
       return res.status(400).json({
         success: false,
@@ -350,10 +460,12 @@ const completeTransfer = async (req, res, next) => {
       });
     }
 
-    // Update transfer
+    // Update transfer with property officer signature
     await transfer.update({
       status: 'completed',
-      completionDate: new Date()
+      completionDate: new Date(),
+      completedBy: req.user.id,
+      propertyOfficerSignature: propertyOfficerSignature || null
     });
 
     // Update asset
@@ -362,15 +474,39 @@ const completeTransfer = async (req, res, next) => {
       status: 'assigned',
       assignedTo: transfer.toUserId,
       location: transfer.toLocation,
-      department: transfer.toDepartment
+      workUnit: transfer.toWorkUnit
     });
 
     const updatedTransfer = await db.Transfer.findByPk(id, {
       include: [
         { model: db.Asset, as: 'asset' },
-        { model: db.User, as: 'toUser', attributes: ['id', 'username', 'fullName'] }
+        { model: db.User, as: 'fromUser', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'email', 'workUnit'] },
+        { model: db.User, as: 'toUser', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'email', 'workUnit'] },
+        { model: db.User, as: 'completer', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName'] }
       ]
     });
+
+    // Log history
+    await logTransferHistory({
+      transferId: id,
+      action: 'completed',
+      performedBy: req.user.id,
+      previousStatus: transfer.status,
+      newStatus: 'completed',
+      notes: 'Transfer completed by property officer',
+      metadata: { 
+        propertyOfficerSignature: propertyOfficerSignature ? 'signed' : 'unsigned',
+        assetReassigned: true 
+      },
+      req
+    });
+
+    // Send email notifications to both parties
+    try {
+      await notifyTransferCompleted(updatedTransfer, updatedTransfer.fromUser, updatedTransfer.toUser, updatedTransfer.completer);
+    } catch (emailError) {
+      console.error('Failed to send email notification:', emailError);
+    }
 
     res.status(200).json({
       success: true,
@@ -416,9 +552,48 @@ const cancelTransfer = async (req, res, next) => {
 
     await transfer.update({ status: 'cancelled' });
 
+    // Log history
+    await logTransferHistory({
+      transferId: id,
+      action: 'cancelled',
+      performedBy: req.user.id,
+      previousStatus: 'pending',
+      newStatus: 'cancelled',
+      notes: 'Transfer cancelled by requester',
+      metadata: {},
+      req
+    });
+
     res.status(200).json({
       success: true,
       message: 'Transfer cancelled successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get transfer history
+// @route   GET /api/transfers/:id/history
+// @access  Private
+const getTransferHistoryById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Check if transfer exists
+    const transfer = await db.Transfer.findByPk(id);
+    if (!transfer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Transfer not found'
+      });
+    }
+
+    const history = await getTransferHistory(id);
+
+    res.status(200).json({
+      success: true,
+      data: history
     });
   } catch (error) {
     next(error);
@@ -432,5 +607,6 @@ module.exports = {
   approveTransfer,
   rejectTransfer,
   completeTransfer,
-  cancelTransfer
+  cancelTransfer,
+  getTransferHistoryById
 };

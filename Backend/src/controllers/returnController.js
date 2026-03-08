@@ -38,17 +38,17 @@ const getReturns = async (req, res, next) => {
         {
           model: db.User,
           as: 'returner',
-          attributes: ['id', 'username', 'fullName', 'department']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'workUnit']
         },
         {
           model: db.User,
           as: 'receiver',
-          attributes: ['id', 'username', 'fullName', 'role']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'role']
         },
         {
           model: db.User,
           as: 'inspector',
-          attributes: ['id', 'username', 'fullName', 'role']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'role']
         }
       ]
     });
@@ -84,17 +84,17 @@ const getReturnById = async (req, res, next) => {
         {
           model: db.User,
           as: 'returner',
-          attributes: ['id', 'username', 'fullName', 'email', 'department']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'email', 'workUnit']
         },
         {
           model: db.User,
           as: 'receiver',
-          attributes: ['id', 'username', 'fullName', 'role']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'role']
         },
         {
           model: db.User,
           as: 'inspector',
-          attributes: ['id', 'username', 'fullName', 'role']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'role']
         }
       ]
     });
@@ -174,7 +174,7 @@ const createReturn = async (req, res, next) => {
     const createdReturn = await db.Return.findByPk(returnRecord.id, {
       include: [
         { model: db.Asset, as: 'asset' },
-        { model: db.User, as: 'returner', attributes: ['id', 'username', 'fullName'] }
+        { model: db.User, as: 'returner', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName'] }
       ]
     });
 
@@ -220,8 +220,8 @@ const receiveReturn = async (req, res, next) => {
     const updatedReturn = await db.Return.findByPk(id, {
       include: [
         { model: db.Asset, as: 'asset' },
-        { model: db.User, as: 'returner', attributes: ['id', 'username', 'fullName'] },
-        { model: db.User, as: 'receiver', attributes: ['id', 'username', 'fullName'] }
+        { model: db.User, as: 'returner', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName'] },
+        { model: db.User, as: 'receiver', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName'] }
       ]
     });
 
@@ -285,8 +285,8 @@ const inspectReturn = async (req, res, next) => {
     const updatedReturn = await db.Return.findByPk(id, {
       include: [
         { model: db.Asset, as: 'asset' },
-        { model: db.User, as: 'returner', attributes: ['id', 'username', 'fullName'] },
-        { model: db.User, as: 'inspector', attributes: ['id', 'username', 'fullName'] }
+        { model: db.User, as: 'returner', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName'] },
+        { model: db.User, as: 'inspector', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName'] }
       ]
     });
 
@@ -339,7 +339,7 @@ const approveReturn = async (req, res, next) => {
     const updatedReturn = await db.Return.findByPk(id, {
       include: [
         { model: db.Asset, as: 'asset' },
-        { model: db.User, as: 'returner', attributes: ['id', 'username', 'fullName'] }
+        { model: db.User, as: 'returner', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName'] }
       ]
     });
 
@@ -385,7 +385,7 @@ const rejectReturn = async (req, res, next) => {
     const updatedReturn = await db.Return.findByPk(id, {
       include: [
         { model: db.Asset, as: 'asset' },
-        { model: db.User, as: 'returner', attributes: ['id', 'username', 'fullName'] }
+        { model: db.User, as: 'returner', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName'] }
       ]
     });
 

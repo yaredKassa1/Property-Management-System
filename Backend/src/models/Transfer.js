@@ -45,13 +45,15 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING(200),
       allowNull: false
     },
-    fromDepartment: {
+    fromWorkUnit: {
       type: DataTypes.STRING(100),
-      allowNull: true
+      allowNull: true,
+      comment: 'Source work unit - can be department, college, institute, or administrative unit'
     },
-    toDepartment: {
+    toWorkUnit: {
       type: DataTypes.STRING(100),
-      allowNull: true
+      allowNull: true,
+      comment: 'Destination work unit - can be department, college, institute, or administrative unit'
     },
     status: {
       type: DataTypes.ENUM(
@@ -112,6 +114,32 @@ module.exports = (sequelize, DataTypes) => {
     rejectionReason: {
       type: DataTypes.TEXT,
       allowNull: true
+    },
+    transferorSignature: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: 'Digital signature of the staff transferring the asset (fromUser)'
+    },
+    recipientSignature: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: 'Digital signature of the staff receiving the asset (toUser)'
+    },
+    propertyOfficerSignature: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: 'Digital signature of property officer who completed the transfer'
+    },
+    completedBy: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: 'users',
+        key: 'id'
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL',
+      comment: 'Property officer who completed the transfer'
     }
   }, {
     tableName: 'transfers',

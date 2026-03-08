@@ -98,7 +98,7 @@ body {
     rgb(var(--background-start-rgb));
 }
 
-/* Form Input Visibility Fix */
+/* Form Input Visibility Fix - Enhanced for all users */
 input[type="text"],
 input[type="email"],
 input[type="password"],
@@ -114,12 +114,14 @@ textarea {
   background-color: white !important;
   color: #111827 !important;
   -webkit-text-fill-color: #111827 !important;
+  font-weight: 500 !important;
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: #9ca3af !important;
+  color: #6b7280 !important;
   opacity: 1 !important;
+  font-weight: 400 !important;
 }
 
 input:disabled,
@@ -142,5 +144,43 @@ input:-webkit-autofill:active {
 /* Select dropdown */
 select option {
   background-color: white;
+  color: #111827;
+  font-weight: 500;
+}
+
+/* Enhanced text visibility for all content */
+p, span, div, td, th, label, button {
+  color: inherit;
+}
+
+/* Ensure all text elements have good contrast */
+.text-gray-900 {
+  color: #111827 !important;
+}
+
+.text-gray-700 {
+  color: #374151 !important;
+}
+
+.text-gray-500 {
+  color: #6b7280 !important;
+}
+
+/* Table text visibility */
+table {
+  color: #111827;
+}
+
+table th {
+  color: #374151 !important;
+  font-weight: 600 !important;
+}
+
+table td {
+  color: #111827 !important;
+}
+
+/* Card and container text */
+.bg-white {
   color: #111827;
 }

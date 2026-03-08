@@ -49,10 +49,11 @@ module.exports = {
       level: 4,
       permissions: [
         'approve_requests',      // Approve/reject requests
+        'approve_transfers',     // Approve/reject transfers
         'view_assets',           // View asset information
         'view_reports'           // Access reports
       ],
-      description: 'Request approval and authorization'
+      description: 'Request and transfer approval and authorization'
     },
     purchase_department: {
       level: 3,
