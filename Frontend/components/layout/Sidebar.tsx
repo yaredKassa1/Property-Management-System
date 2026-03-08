@@ -17,6 +17,7 @@ export function Sidebar({ user }: SidebarProps) {
     { name: 'Assets', href: '/assets', icon: '📦', roles: ['property_officer', 'approval_authority', 'purchase_department', 'quality_assurance', 'staff', 'vice_president'] },
     { name: 'Assignments', href: '/assignments', icon: '👤', roles: ['property_officer'] },
     { name: 'Transfers', href: '/transfers', icon: '🔄', roles: ['property_officer', 'staff', 'vice_president', 'approval_authority', 'purchase_department', 'quality_assurance'] },
+    { name: 'Transfer Dashboard', href: '/transfers/dashboard', icon: '📋', roles: ['property_officer'] }, // Only property officers see this
     { name: 'Returns', href: '/returns', icon: '↩️', roles: ['property_officer', 'staff', 'quality_assurance'] },
     { name: 'Requests', href: '/requests', icon: '📝', roles: ['property_officer', 'staff', 'approval_authority', 'purchase_department', 'vice_president'] },
     { name: 'Reports', href: '/reports', icon: '📈', roles: ['property_officer', 'vice_president', 'approval_authority'] },

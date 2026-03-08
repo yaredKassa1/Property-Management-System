@@ -1,5 +1,11 @@
 const { Op } = require('sequelize');
 const db = require('../models');
+const { 
+  notifyRequestCreated, 
+  notifyRequestApproved, 
+  notifyRequestRejected, 
+  notifyRequestCompleted 
+} = require('../utils/emailService');
 
 // @desc    Get all requests with filtering
 // @route   GET /api/requests
@@ -10,7 +16,7 @@ const getRequests = async (req, res, next) => {
       status,
       requestType,
       priority,
-      department,
+      workUnit,
       requestedBy,
       page = 1,
       limit = 10,
@@ -23,8 +29,15 @@ const getRequests = async (req, res, next) => {
     if (status) where.status = status;
     if (requestType) where.requestType = requestType;
     if (priority) where.priority = priority;
-    if (department) where.department = department;
+    if (workUnit) where.workUnit = workUnit;
     if (requestedBy) where.requestedBy = requestedBy;
+
+    // Role-based filtering: Staff and regular users only see their own requests
+    // Property officers, approval authorities, admins, and vice presidents see all
+    const allowedToSeeAll = ['property_officer', 'approval_authority', 'administrator', 'vice_president', 'purchase_department', 'quality_assurance'];
+    if (!allowedToSeeAll.includes(req.user.role)) {
+      where.requestedBy = req.user.id;
+    }
 
     const offset = (page - 1) * limit;
 
@@ -42,12 +55,17 @@ const getRequests = async (req, res, next) => {
         {
           model: db.User,
           as: 'requester',
-          attributes: ['id', 'username', 'fullName', 'department']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'workUnit']
+        },
+        {
+          model: db.User,
+          as: 'approvalAuthority',
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'role']
         },
         {
           model: db.User,
           as: 'approver',
-          attributes: ['id', 'username', 'fullName', 'role']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'role']
         }
       ]
     });
@@ -83,12 +101,17 @@ const getRequestById = async (req, res, next) => {
         {
           model: db.User,
           as: 'requester',
-          attributes: ['id', 'username', 'fullName', 'email', 'department']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'email', 'workUnit']
+        },
+        {
+          model: db.User,
+          as: 'approvalAuthority',
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'role']
         },
         {
           model: db.User,
           as: 'approver',
-          attributes: ['id', 'username', 'fullName', 'role']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'role']
         }
       ]
     });
@@ -121,10 +144,12 @@ const createRequest = async (req, res, next) => {
       quantity,
       estimatedCost,
       priority,
-      department,
+      workUnit,
+      approvalAuthorityId,
       purpose,
       justification,
-      specifications
+      specifications,
+      requesterSignature
     } = req.body;
 
     // If assetId provided, verify it exists
@@ -138,7 +163,25 @@ const createRequest = async (req, res, next) => {
       }
     }
 
-    // Create request
+    // Validate approval authority if provided
+    if (approvalAuthorityId) {
+      const approvalAuthority = await db.User.findByPk(approvalAuthorityId);
+      if (!approvalAuthority) {
+        return res.status(404).json({
+          success: false,
+          message: 'Approval authority not found'
+        });
+      }
+      // Verify the user is actually an approval authority
+      if (!['approval_authority', 'vice_president'].includes(approvalAuthority.role)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Selected user is not an approval authority'
+        });
+      }
+    }
+
+    // Create request with status 'in_progress' and requestor signature
     const request = await db.Request.create({
       requestType,
       assetId,
@@ -146,11 +189,14 @@ const createRequest = async (req, res, next) => {
       quantity: quantity || 1,
       estimatedCost,
       priority: priority || 'medium',
+      status: 'in_progress',
       requestedBy: req.user.id,
-      department: department || req.user.department,
+      workUnit: workUnit || req.user.workUnit,
+      approvalAuthorityId,
       purpose,
       justification,
       specifications,
+      requesterSignature,
       requestDate: new Date()
     });
 
@@ -158,9 +204,19 @@ const createRequest = async (req, res, next) => {
     const createdRequest = await db.Request.findByPk(request.id, {
       include: [
         { model: db.Asset, as: 'asset' },
-        { model: db.User, as: 'requester', attributes: ['id', 'username', 'fullName'] }
+        { model: db.User, as: 'requester', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'email', 'workUnit'] },
+        { model: db.User, as: 'approvalAuthority', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'email'] }
       ]
     });
+
+    // Send email notification to approval authority
+    try {
+      if (createdRequest.approvalAuthority) {
+        await notifyRequestCreated(createdRequest, createdRequest.requester, createdRequest.approvalAuthority);
+      }
+    } catch (emailError) {
+      console.error('Failed to send email notification:', emailError);
+    }
 
     res.status(201).json({
       success: true,
@@ -210,7 +266,7 @@ const updateRequest = async (req, res, next) => {
     const updatedRequest = await db.Request.findByPk(id, {
       include: [
         { model: db.Asset, as: 'asset' },
-        { model: db.User, as: 'requester', attributes: ['id', 'username', 'fullName'] }
+        { model: db.User, as: 'requester', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName'] }
       ]
     });
 
@@ -254,7 +310,7 @@ const reviewRequest = async (req, res, next) => {
 
     const updatedRequest = await db.Request.findByPk(id, {
       include: [
-        { model: db.User, as: 'requester', attributes: ['id', 'username', 'fullName'] }
+        { model: db.User, as: 'requester', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName'] }
       ]
     });
 
@@ -274,7 +330,7 @@ const reviewRequest = async (req, res, next) => {
 const approveRequest = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { approvalNotes } = req.body;
+    const { approvalNotes, permittedAmount, approverSignature } = req.body;
 
     const request = await db.Request.findByPk(id);
 
@@ -285,7 +341,18 @@ const approveRequest = async (req, res, next) => {
       });
     }
 
-    if (request.status !== 'pending' && request.status !== 'under_review') {
+    // Check if the current user is the assigned approval authority
+    if (request.approvalAuthorityId && request.approvalAuthorityId !== req.user.id) {
+      // Allow administrators and vice presidents to override
+      if (!['administrator', 'vice_president'].includes(req.user.role)) {
+        return res.status(403).json({
+          success: false,
+          message: 'You are not authorized to approve this request. This request is assigned to another approval authority.'
+        });
+      }
+    }
+
+    if (request.status !== 'in_progress' && request.status !== 'pending' && request.status !== 'under_review') {
       return res.status(400).json({
         success: false,
         message: `Cannot approve request with status: ${request.status}`
@@ -296,15 +363,24 @@ const approveRequest = async (req, res, next) => {
       status: 'approved',
       approvedBy: req.user.id,
       approvalDate: new Date(),
-      approvalNotes
+      approvalNotes,
+      permittedAmount,
+      approverSignature
     });
 
     const updatedRequest = await db.Request.findByPk(id, {
       include: [
-        { model: db.User, as: 'requester', attributes: ['id', 'username', 'fullName'] },
-        { model: db.User, as: 'approver', attributes: ['id', 'username', 'fullName'] }
+        { model: db.User, as: 'requester', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'email'] },
+        { model: db.User, as: 'approver', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName'] }
       ]
     });
+
+    // Send email notification to requester
+    try {
+      await notifyRequestApproved(updatedRequest, updatedRequest.requester, updatedRequest.approver);
+    } catch (emailError) {
+      console.error('Failed to send email notification:', emailError);
+    }
 
     res.status(200).json({
       success: true,
@@ -340,7 +416,18 @@ const rejectRequest = async (req, res, next) => {
       });
     }
 
-    if (request.status !== 'pending' && request.status !== 'under_review') {
+    // Check if the current user is the assigned approval authority
+    if (request.approvalAuthorityId && request.approvalAuthorityId !== req.user.id) {
+      // Allow administrators and vice presidents to override
+      if (!['administrator', 'vice_president'].includes(req.user.role)) {
+        return res.status(403).json({
+          success: false,
+          message: 'You are not authorized to reject this request. This request is assigned to another approval authority.'
+        });
+      }
+    }
+
+    if (request.status !== 'in_progress' && request.status !== 'pending' && request.status !== 'under_review') {
       return res.status(400).json({
         success: false,
         message: `Cannot reject request with status: ${request.status}`
@@ -356,10 +443,17 @@ const rejectRequest = async (req, res, next) => {
 
     const updatedRequest = await db.Request.findByPk(id, {
       include: [
-        { model: db.User, as: 'requester', attributes: ['id', 'username', 'fullName'] },
-        { model: db.User, as: 'approver', attributes: ['id', 'username', 'fullName'] }
+        { model: db.User, as: 'requester', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'email'] },
+        { model: db.User, as: 'approver', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName'] }
       ]
     });
+
+    // Send email notification to requester
+    try {
+      await notifyRequestRejected(updatedRequest, updatedRequest.requester, rejectionReason);
+    } catch (emailError) {
+      console.error('Failed to send email notification:', emailError);
+    }
 
     res.status(200).json({
       success: true,
@@ -377,8 +471,14 @@ const rejectRequest = async (req, res, next) => {
 const completeRequest = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const { completerSignature } = req.body;
 
-    const request = await db.Request.findByPk(id);
+    const request = await db.Request.findByPk(id, {
+      include: [
+        { model: db.Asset, as: 'asset' },
+        { model: db.User, as: 'requester', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName'] }
+      ]
+    });
 
     if (!request) {
       return res.status(404).json({
@@ -387,23 +487,51 @@ const completeRequest = async (req, res, next) => {
       });
     }
 
-    if (request.status !== 'approved' && request.status !== 'in_progress') {
+    if (request.status !== 'approved') {
       return res.status(400).json({
         success: false,
-        message: `Cannot complete request with status: ${request.status}`
+        message: `Cannot complete request with status: ${request.status}. Request must be approved first.`
       });
     }
 
+    // Update request status with completer info
     await request.update({
       status: 'completed',
-      completionDate: new Date()
+      completedBy: req.user.id,
+      completionDate: new Date(),
+      completerSignature
     });
+
+    // If it's a withdrawal request and has an associated asset, update the asset assignment
+    if (request.requestType === 'withdrawal' && request.assetId) {
+      const asset = await db.Asset.findByPk(request.assetId);
+      if (asset) {
+        await asset.update({
+          status: 'assigned',
+          assignedTo: request.requestedBy,
+          workUnit: request.workUnit
+        });
+      }
+    }
 
     const updatedRequest = await db.Request.findByPk(id, {
       include: [
-        { model: db.User, as: 'requester', attributes: ['id', 'username', 'fullName'] }
+        { model: db.Asset, as: 'asset' },
+        { model: db.User, as: 'requester', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'email'] }
       ]
     });
+
+    // Get completer info
+    const completer = await db.User.findByPk(req.user.id, {
+      attributes: ['id', 'username', 'firstName', 'middleName', 'lastName']
+    });
+
+    // Send email notification to requester
+    try {
+      await notifyRequestCompleted(updatedRequest, updatedRequest.requester, completer);
+    } catch (emailError) {
+      console.error('Failed to send email notification:', emailError);
+    }
 
     res.status(200).json({
       success: true,

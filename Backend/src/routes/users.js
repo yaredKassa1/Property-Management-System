@@ -11,7 +11,8 @@ const {
   updateUser,
   deleteUser,
   resetPassword,
-  getUserStats
+  getUserStats,
+  getApprovalAuthorities
 } = require('../controllers/userController');
 
 // All routes require authentication
@@ -24,6 +25,11 @@ router.use(verifyToken);
 // @desc    Get user statistics
 // @access  Private (administrator only)
 router.get('/stats/summary', requirePermission('manage_users'), getUserStats);
+
+// @route   GET /api/users/approval-authorities
+// @desc    Get all approval authorities (for request assignment)
+// @access  Private (all authenticated users can see approval authorities)
+router.get('/approval-authorities', getApprovalAuthorities);
 
 // @route   GET /api/users
 // @desc    Get all users
@@ -94,21 +100,37 @@ router.post(
       .withMessage('Password is required')
       .isLength({ min: 6 })
       .withMessage('Password must be at least 6 characters long'),
-    body('fullName')
+    body('firstName')
       .trim()
       .notEmpty()
-      .withMessage('Full name is required')
-      .isLength({ max: 100 })
-      .withMessage('Full name must not exceed 100 characters'),
+      .withMessage('First name is required')
+      .isLength({ max: 50 })
+      .withMessage('First name must not exceed 50 characters'),
+    body('middleName')
+      .optional()
+      .trim()
+      .isLength({ max: 50 })
+      .withMessage('Middle name must not exceed 50 characters'),
+    body('lastName')
+      .trim()
+      .notEmpty()
+      .withMessage('Last name is required')
+      .isLength({ max: 50 })
+      .withMessage('Last name must not exceed 50 characters'),
+    body('phoneNumber')
+      .optional()
+      .trim()
+      .matches(/^\+251[97]\d{8}$/)
+      .withMessage('Phone number must be in Ethiopian format: +251 9XXXXXXXX (Ethio Telecom) or +251 7XXXXXXXX (Safaricom)'),
     body('role')
       .optional()
       .isIn(['administrator', 'vice_president', 'property_officer', 'approval_authority', 'purchase_department', 'quality_assurance', 'staff'])
       .withMessage('Invalid role'),
-    body('department')
+    body('workUnit')
       .optional()
       .trim()
       .isLength({ max: 100 })
-      .withMessage('Department must not exceed 100 characters'),
+      .withMessage('Work unit must not exceed 100 characters'),
     body('isActive')
       .optional()
       .isBoolean()
@@ -145,20 +167,35 @@ router.put(
       .optional()
       .isLength({ min: 6 })
       .withMessage('Password must be at least 6 characters long'),
-    body('fullName')
+    body('firstName')
       .optional()
       .trim()
-      .isLength({ max: 100 })
-      .withMessage('Full name must not exceed 100 characters'),
+      .isLength({ max: 50 })
+      .withMessage('First name must not exceed 50 characters'),
+    body('middleName')
+      .optional()
+      .trim()
+      .isLength({ max: 50 })
+      .withMessage('Middle name must not exceed 50 characters'),
+    body('lastName')
+      .optional()
+      .trim()
+      .isLength({ max: 50 })
+      .withMessage('Last name must not exceed 50 characters'),
+    body('phoneNumber')
+      .optional()
+      .trim()
+      .matches(/^\+251[97]\d{8}$/)
+      .withMessage('Phone number must be in Ethiopian format: +251 9XXXXXXXX (Ethio Telecom) or +251 7XXXXXXXX (Safaricom)'),
     body('role')
       .optional()
       .isIn(['administrator', 'vice_president', 'property_officer', 'approval_authority', 'purchase_department', 'quality_assurance', 'staff'])
       .withMessage('Invalid role'),
-    body('department')
+    body('workUnit')
       .optional()
       .trim()
       .isLength({ max: 100 })
-      .withMessage('Department must not exceed 100 characters'),
+      .withMessage('Work unit must not exceed 100 characters'),
     body('isActive')
       .optional()
       .isBoolean()

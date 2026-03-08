@@ -8,6 +8,7 @@ require('dotenv').config();
 
 const { testConnection } = require('./config/database');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
+const { initializeScheduler } = require('./utils/scheduler');
 const authRoutes = require('./routes/auth');
 const assetRoutes = require('./routes/assets');
 const transferRoutes = require('./routes/transfers');
@@ -179,6 +180,9 @@ const startServer = async () => {
       console.log(`🔗 API Base: http://localhost:${PORT}/api`);
       console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
       console.log('═════════════════════════════════════════════════════');
+      
+      // Initialize scheduled jobs
+      initializeScheduler();
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error.message);

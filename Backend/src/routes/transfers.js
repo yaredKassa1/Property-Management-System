@@ -11,7 +11,8 @@ const {
   approveTransfer,
   rejectTransfer,
   completeTransfer,
-  cancelTransfer
+  cancelTransfer,
+  getTransferHistoryById
 } = require('../controllers/transferController');
 
 // All routes require authentication
@@ -38,6 +39,20 @@ router.get(
   ],
   validate,
   getTransfers
+);
+
+// @route   GET /api/transfers/:id/history
+// @desc    Get transfer history (audit trail)
+// @access  Private
+router.get(
+  '/:id/history',
+  [
+    param('id')
+      .isUUID()
+      .withMessage('Invalid transfer ID')
+  ],
+  validate,
+  getTransferHistoryById
 );
 
 // @route   GET /api/transfers/:id
@@ -90,16 +105,18 @@ router.post(
 );
 
 // @route   POST /api/transfers/:id/approve
-// @desc    Approve transfer
-// @access  Private (vice_president only)
+// @desc    Approve transfer (recipient accepts)
+// @access  Private (recipient user - toUserId)
 router.post(
   '/:id/approve',
-  requireRole('vice_president'),
   [
     param('id')
       .isUUID()
       .withMessage('Invalid transfer ID'),
     body('notes')
+      .optional()
+      .trim(),
+    body('recipientSignature')
       .optional()
       .trim()
   ],
@@ -109,10 +126,10 @@ router.post(
 
 // @route   POST /api/transfers/:id/reject
 // @desc    Reject transfer
-// @access  Private (vice_president only)
+// @access  Private (approval_authority, vice_president, administrator)
 router.post(
   '/:id/reject',
-  requireRole('vice_president'),
+  requirePermission('approve_transfers'),
   [
     param('id')
       .isUUID()
@@ -137,7 +154,10 @@ router.post(
   [
     param('id')
       .isUUID()
-      .withMessage('Invalid transfer ID')
+      .withMessage('Invalid transfer ID'),
+    body('propertyOfficerSignature')
+      .optional()
+      .trim()
   ],
   validate,
   completeTransfer

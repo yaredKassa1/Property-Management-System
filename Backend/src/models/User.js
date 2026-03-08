@@ -32,11 +32,32 @@ module.exports = (sequelize, DataTypes) => {
         notEmpty: true
       }
     },
-    fullName: {
-      type: DataTypes.STRING(100),
-      allowNull: false,
+    firstName: {
+      type: DataTypes.STRING(50),
+      allowNull: true, // Temporarily allow null for migration
       validate: {
         notEmpty: true
+      }
+    },
+    middleName: {
+      type: DataTypes.STRING(50),
+      allowNull: true
+    },
+    lastName: {
+      type: DataTypes.STRING(50),
+      allowNull: true, // Temporarily allow null for migration
+      validate: {
+        notEmpty: true
+      }
+    },
+    phoneNumber: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+      validate: {
+        is: {
+          args: /^\+251[97]\d{8}$/,
+          msg: 'Phone number must be in Ethiopian format: +251 9XXXXXXXX (Ethio Telecom) or +251 7XXXXXXXX (Safaricom)'
+        }
       }
     },
     role: {
@@ -52,9 +73,10 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: 'staff'
     },
-    department: {
+    workUnit: {
       type: DataTypes.STRING(100),
-      allowNull: true
+      allowNull: true,
+      comment: 'Work unit - can be department, college, institute, or administrative unit'
     },
     isActive: {
       type: DataTypes.BOOLEAN,
@@ -94,7 +116,14 @@ module.exports = (sequelize, DataTypes) => {
   // Instance method to get safe user data (without password)
   User.prototype.toSafeObject = function() {
     const { password, ...userWithoutPassword } = this.toJSON();
+    // Add computed fullName for backward compatibility
+    userWithoutPassword.fullName = `${this.firstName}${this.middleName ? ' ' + this.middleName : ''} ${this.lastName}`.trim();
     return userWithoutPassword;
+  };
+
+  // Add virtual field for fullName
+  User.prototype.getFullName = function() {
+    return `${this.firstName}${this.middleName ? ' ' + this.middleName : ''} ${this.lastName}`.trim();
   };
 
   return User;

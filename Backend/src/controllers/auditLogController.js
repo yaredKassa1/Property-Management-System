@@ -44,7 +44,7 @@ const getAuditLogs = async (req, res, next) => {
         {
           model: db.User,
           as: 'user',
-          attributes: ['id', 'username', 'fullName', 'role']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'role']
         }
       ]
     });
@@ -88,7 +88,7 @@ const getAuditLogById = async (req, res, next) => {
         {
           model: db.User,
           as: 'user',
-          attributes: ['id', 'username', 'fullName', 'email', 'role', 'department']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'email', 'role', 'workUnit']
         }
       ]
     });
@@ -128,7 +128,7 @@ const getUserAuditLogs = async (req, res, next) => {
         {
           model: db.User,
           as: 'user',
-          attributes: ['id', 'username', 'fullName', 'role']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'role']
         }
       ]
     });
@@ -207,7 +207,7 @@ const getAuditLogStats = async (req, res, next) => {
         {
           model: db.User,
           as: 'user',
-          attributes: ['username', 'fullName', 'role']
+          attributes: ['username', 'firstName', 'middleName', 'lastName', 'role']
         }
       ],
       group: ['userId', 'user.id'],
@@ -286,7 +286,7 @@ const getSecurityEvents = async (req, res, next) => {
         {
           model: db.User,
           as: 'user',
-          attributes: ['id', 'username', 'fullName', 'role']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'role']
         }
       ]
     });

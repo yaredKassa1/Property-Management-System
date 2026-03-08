@@ -15,7 +15,7 @@ export default function ReportsPage() {
     type: 'asset_status' as ReportType,
     startDate: '',
     endDate: '',
-    department: '',
+    workUnit: '',
   });
 
   const reportTypes = [
@@ -72,8 +72,8 @@ export default function ReportsPage() {
 
               <Input
                 label="Department (Optional)"
-                value={filters.department}
-                onChange={(e) => setFilters({ ...filters, department: e.target.value })}
+                value={filters.workUnit}
+                onChange={(e) => setFilters({ ...filters, workUnit: e.target.value })}
               />
             </div>
 

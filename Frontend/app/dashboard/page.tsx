@@ -788,11 +788,11 @@ export default function DashboardPage() {
 
             {/* Assignments by Department */}
             {propertyOfficerStats.assignmentsByDepartment && propertyOfficerStats.assignmentsByDepartment.length > 0 && (
-              <Card title="Asset Assignments by Department" className="border border-gray-200">
+              <Card title="Asset Assignments by Work Unit" className="border border-gray-200">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {propertyOfficerStats.assignmentsByDepartment.map((dept: any) => (
-                    <div key={dept.department} className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                      <p className="text-sm font-medium text-gray-700 mb-2">{dept.department || 'Unknown'}</p>
+                    <div key={dept.workUnit} className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                      <p className="text-sm font-medium text-gray-700 mb-2">{dept.workUnit || 'Unknown'}</p>
                       <p className="text-3xl font-bold text-blue-600">{dept.count}</p>
                       <p className="text-xs text-gray-500 mt-1">assets assigned</p>
                     </div>

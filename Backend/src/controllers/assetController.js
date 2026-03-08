@@ -1,5 +1,6 @@
 const { Op } = require('sequelize');
 const db = require('../models');
+const { notifyAssetAssigned, notifyAssetUnassigned } = require('../utils/emailService');
 
 // @desc    Get all assets with filtering and pagination
 // @route   GET /api/assets
@@ -9,7 +10,8 @@ const getAssets = async (req, res, next) => {
     const {
       status,
       category,
-      department,
+      workUnit,
+      assignedTo,
       search,
       page = 1,
       limit = 10,
@@ -28,8 +30,12 @@ const getAssets = async (req, res, next) => {
       where.category = category;
     }
 
-    if (department) {
-      where.department = department;
+    if (workUnit) {
+      where.workUnit = workUnit;
+    }
+
+    if (assignedTo) {
+      where.assignedTo = assignedTo;
     }
 
     if (search) {
@@ -54,12 +60,12 @@ const getAssets = async (req, res, next) => {
         {
           model: db.User,
           as: 'assignedUser',
-          attributes: ['id', 'username', 'fullName', 'email', 'department']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'email', 'workUnit']
         },
         {
           model: db.User,
           as: 'creator',
-          attributes: ['id', 'username', 'fullName']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName']
         }
       ]
     });
@@ -91,12 +97,12 @@ const getAssetById = async (req, res, next) => {
         {
           model: db.User,
           as: 'assignedUser',
-          attributes: ['id', 'username', 'fullName', 'email', 'department']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'email', 'workUnit']
         },
         {
           model: db.User,
           as: 'creator',
-          attributes: ['id', 'username', 'fullName']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName']
         }
       ]
     });
@@ -130,7 +136,7 @@ const createAsset = async (req, res, next) => {
       value,
       purchaseDate,
       location,
-      department,
+      workUnit,
       status,
       condition,
       description,
@@ -166,7 +172,7 @@ const createAsset = async (req, res, next) => {
       value,
       purchaseDate,
       location,
-      department,
+      workUnit,
       status: status || 'available',
       condition: condition || 'excellent',
       description,
@@ -180,7 +186,7 @@ const createAsset = async (req, res, next) => {
         {
           model: db.User,
           as: 'creator',
-          attributes: ['id', 'username', 'fullName']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName']
         }
       ]
     });
@@ -244,6 +250,10 @@ const updateAsset = async (req, res, next) => {
       }
     }
 
+    // Track assignment changes for email notifications
+    const previousAssignedTo = asset.assignedTo;
+    const newAssignedTo = updates.assignedTo;
+
     // If assigning to user, verify user exists
     if (updates.assignedTo) {
       const user = await db.User.findByPk(updates.assignedTo);
@@ -269,15 +279,37 @@ const updateAsset = async (req, res, next) => {
         {
           model: db.User,
           as: 'assignedUser',
-          attributes: ['id', 'username', 'fullName', 'email', 'department']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'email', 'workUnit']
         },
         {
           model: db.User,
           as: 'creator',
-          attributes: ['id', 'username', 'fullName']
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName']
         }
       ]
     });
+
+    // Send email notifications for assignment changes
+    try {
+      // If newly assigned to someone
+      if (newAssignedTo && newAssignedTo !== previousAssignedTo) {
+        if (updatedAsset.assignedUser) {
+          await notifyAssetAssigned(updatedAsset, updatedAsset.assignedUser, req.user);
+        }
+      }
+      
+      // If unassigned from someone
+      if (previousAssignedTo && (!newAssignedTo || newAssignedTo !== previousAssignedTo)) {
+        const previousUser = await db.User.findByPk(previousAssignedTo, {
+          attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'email']
+        });
+        if (previousUser) {
+          await notifyAssetUnassigned(updatedAsset, previousUser, req.user);
+        }
+      }
+    } catch (emailError) {
+      console.error('Failed to send email notification:', emailError);
+    }
 
     res.status(200).json({
       success: true,

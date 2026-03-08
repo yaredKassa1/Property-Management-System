@@ -158,7 +158,7 @@ export default function UsersPage() {
                     Role
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Department
+                    Work Unit
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
@@ -179,10 +179,12 @@ export default function UsersPage() {
                     </td>
                   </tr>
                 ) : (
-                  users.map((user) => (
+                  users.map((user) => {
+                    const fullName = `${user.firstName} ${user.middleName ? user.middleName + ' ' : ''}${user.lastName}`;
+                    return (
                     <tr key={user.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{user.fullName}</div>
+                        <div className="text-sm font-medium text-gray-900">{fullName}</div>
                         <div className="text-sm text-gray-500">@{user.username}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -194,7 +196,7 @@ export default function UsersPage() {
                         </Badge>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {user.department || 'N/A'}
+                        {user.workUnit || 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <Badge variant={user.isActive ? 'success' : 'default'}>
@@ -230,7 +232,8 @@ export default function UsersPage() {
                         )}
                       </td>
                     </tr>
-                  ))
+                  );
+                  })
                 )}
               </tbody>
             </table>
@@ -274,9 +277,13 @@ function CreateUserModal({ onClose, onSuccess }: { onClose: () => void; onSucces
     username: '',
     email: '',
     password: '',
-    fullName: '',
+    firstName: '',
+    middleName: '',
+    lastName: '',
+    countryCode: '+251',
+    phoneNumber: '',
     role: 'staff' as UserRole,
-    department: '',
+    workUnit: '',
     isActive: true,
   });
   const [loading, setLoading] = useState(false);
@@ -286,7 +293,12 @@ function CreateUserModal({ onClose, onSuccess }: { onClose: () => void; onSucces
     setLoading(true);
 
     try {
-      await api.createUser(formData);
+      // Combine country code and phone number
+      const fullPhoneNumber = formData.phoneNumber ? `${formData.countryCode}${formData.phoneNumber}` : '';
+      const { countryCode, ...dataToSend } = formData;
+      const submitData = { ...dataToSend, phoneNumber: fullPhoneNumber };
+      
+      await api.createUser(submitData);
       alert('User created successfully!');
       onSuccess();
     } catch (err: any) {
@@ -343,18 +355,81 @@ function CreateUserModal({ onClose, onSuccess }: { onClose: () => void; onSucces
               </div>
             </div>
 
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  First Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="John"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Middle Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.middleName}
+                  onChange={(e) => setFormData({ ...formData, middleName: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Michael"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Last Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Doe"
+                />
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name *
+                Phone Number
               </label>
-              <input
-                type="text"
-                required
-                value={formData.fullName}
-                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="John Doe"
-              />
+              <div className="grid grid-cols-3 gap-2">
+                <select
+                  value={formData.countryCode}
+                  onChange={(e) => setFormData({ ...formData, countryCode: e.target.value })}
+                  className="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="+251">🇪🇹 +251</option>
+                </select>
+                <div className="col-span-2">
+                  <input
+                    type="tel"
+                    value={formData.phoneNumber}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '');
+                      if (value.length <= 9) {
+                        setFormData({ ...formData, phoneNumber: value });
+                      }
+                    }}
+                    pattern="[79]\d{8}"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="9XXXXXXXX or 7XXXXXXXX"
+                    title="Enter 9 digits starting with 9 (Ethio Telecom) or 7 (Safaricom)"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                9XXXXXXXX for Ethio Telecom or 7XXXXXXXX for Safaricom
+              </p>
             </div>
 
             <div>
@@ -395,14 +470,14 @@ function CreateUserModal({ onClose, onSuccess }: { onClose: () => void; onSucces
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Department
+                  Work Unit
                 </label>
                 <input
                   type="text"
-                  value={formData.department}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                  value={formData.workUnit}
+                  onChange={(e) => setFormData({ ...formData, workUnit: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g., IT Department"
+                  placeholder="e.g., IT Department, College of Engineering"
                 />
               </div>
             </div>
@@ -437,10 +512,14 @@ function CreateUserModal({ onClose, onSuccess }: { onClose: () => void; onSucces
 // Edit User Modal Component
 function EditUserModal({ user, onClose, onSuccess }: { user: User; onClose: () => void; onSuccess: () => void }) {
   const [formData, setFormData] = useState({
-    fullName: user.fullName,
+    firstName: user.firstName,
+    middleName: user.middleName || '',
+    lastName: user.lastName,
+    countryCode: user.phoneNumber?.startsWith('+251') ? '+251' : '+251',
+    phoneNumber: user.phoneNumber?.startsWith('+251') ? user.phoneNumber.substring(4) : '',
     email: user.email,
     role: user.role,
-    department: user.department || '',
+    workUnit: user.workUnit || '',
     isActive: user.isActive,
   });
   const [loading, setLoading] = useState(false);
@@ -450,7 +529,12 @@ function EditUserModal({ user, onClose, onSuccess }: { user: User; onClose: () =
     setLoading(true);
 
     try {
-      await api.updateUser(user.id, formData);
+      // Combine country code and phone number
+      const fullPhoneNumber = formData.phoneNumber ? `${formData.countryCode}${formData.phoneNumber}` : '';
+      const { countryCode, ...dataToSend } = formData;
+      const submitData = { ...dataToSend, phoneNumber: fullPhoneNumber };
+      
+      await api.updateUser(user.id, submitData);
       alert('User updated successfully!');
       onSuccess();
     } catch (err: any) {
@@ -477,17 +561,78 @@ function EditUserModal({ user, onClose, onSuccess }: { user: User; onClose: () =
           </div>
           
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  First Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Middle Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.middleName}
+                  onChange={(e) => setFormData({ ...formData, middleName: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Last Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name *
+                Phone Number
               </label>
-              <input
-                type="text"
-                required
-                value={formData.fullName}
-                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div className="grid grid-cols-3 gap-2">
+                <select
+                  value={formData.countryCode}
+                  onChange={(e) => setFormData({ ...formData, countryCode: e.target.value })}
+                  className="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="+251">🇪🇹 +251</option>
+                </select>
+                <div className="col-span-2">
+                  <input
+                    type="tel"
+                    value={formData.phoneNumber}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '');
+                      if (value.length <= 9) {
+                        setFormData({ ...formData, phoneNumber: value });
+                      }
+                    }}
+                    pattern="[79]\d{8}"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="9XXXXXXXX or 7XXXXXXXX"
+                    title="Enter 9 digits starting with 9 (Ethio Telecom) or 7 (Safaricom)"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                9XXXXXXXX for Ethio Telecom or 7XXXXXXXX for Safaricom
+              </p>
             </div>
 
             <div>
@@ -526,13 +671,14 @@ function EditUserModal({ user, onClose, onSuccess }: { user: User; onClose: () =
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Department
+                  Work Unit
                 </label>
                 <input
                   type="text"
-                  value={formData.department}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                  value={formData.workUnit}
+                  onChange={(e) => setFormData({ ...formData, workUnit: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g., IT Department, College of Engineering"
                 />
               </div>
             </div>

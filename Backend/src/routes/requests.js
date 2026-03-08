@@ -106,6 +106,9 @@ router.post(
       .trim(),
     body('specifications')
       .optional()
+      .trim(),
+    body('requesterSignature')
+      .optional()
       .trim()
   ],
   validate,
@@ -166,6 +169,13 @@ router.post(
       .withMessage('Invalid request ID'),
     body('approvalNotes')
       .optional()
+      .trim(),
+    body('permittedAmount')
+      .optional()
+      .isInt({ min: 0 })
+      .withMessage('Permitted amount must be a non-negative integer'),
+    body('approverSignature')
+      .optional()
       .trim()
   ],
   validate,
@@ -202,7 +212,10 @@ router.post(
   [
     param('id')
       .isUUID()
-      .withMessage('Invalid request ID')
+      .withMessage('Invalid request ID'),
+    body('completerSignature')
+      .optional()
+      .trim()
   ],
   validate,
   completeRequest

@@ -54,10 +54,12 @@ export default function RequestsPage() {
 
   const handleApprove = async (request: Request) => {
     const notes = prompt('Enter approval notes (optional):');
+    const permittedAmountStr = prompt('Enter permitted amount (optional):');
+    const permittedAmount = permittedAmountStr ? parseInt(permittedAmountStr) : undefined;
     
     setActionLoading(true);
     try {
-      await api.approveRequest(request.id, notes || undefined);
+      await api.approveRequest(request.id, notes || undefined, permittedAmount, 'Digital Signature');
       alert('Request approved successfully!');
       fetchRequests();
     } catch (err: any) {
@@ -88,7 +90,7 @@ export default function RequestsPage() {
     
     setActionLoading(true);
     try {
-      await api.completeRequest(request.id);
+      await api.completeRequest(request.id, 'Digital Signature');
       alert('Request completed successfully!');
       fetchRequests();
     } catch (err: any) {
@@ -113,12 +115,12 @@ export default function RequestsPage() {
     }
   };
 
-  const getStatusColor = (status: RequestStatus): string => {
-    const colors: Record<RequestStatus, string> = {
+  const getStatusColor = (status: RequestStatus): 'info' | 'success' | 'warning' | 'danger' | 'default' => {
+    const colors: Record<RequestStatus, 'info' | 'success' | 'warning' | 'danger' | 'default'> = {
       pending: 'warning',
       under_review: 'info',
       approved: 'success',
-      rejected: 'error',
+      rejected: 'danger',
       in_progress: 'info',
       completed: 'success',
       cancelled: 'default',
@@ -126,12 +128,12 @@ export default function RequestsPage() {
     return colors[status] || 'default';
   };
 
-  const getPriorityColor = (priority: RequestPriority): string => {
-    const colors: Record<RequestPriority, string> = {
+  const getPriorityColor = (priority: RequestPriority): 'info' | 'success' | 'warning' | 'danger' | 'default' => {
+    const colors: Record<RequestPriority, 'info' | 'success' | 'warning' | 'danger' | 'default'> = {
       low: 'default',
       medium: 'info',
       high: 'warning',
-      urgent: 'error',
+      urgent: 'danger',
     };
     return colors[priority] || 'default';
   };
@@ -147,16 +149,18 @@ export default function RequestsPage() {
   const canApproveOrReject = (request: Request): boolean => {
     return (
       (currentUser?.role === 'approval_authority' ||
-       currentUser?.role === 'vice_president') &&
-      (request.status === 'pending' || request.status === 'under_review')
+       currentUser?.role === 'vice_president' ||
+       currentUser?.role === 'administrator') &&
+      (request.status === 'in_progress' || request.status === 'pending' || request.status === 'under_review')
     );
   };
 
   const canComplete = (request: Request): boolean => {
     return (
       (currentUser?.role === 'property_officer' ||
-       currentUser?.role === 'purchase_department') &&
-      (request.status === 'approved' || request.status === 'in_progress')
+       currentUser?.role === 'purchase_department' ||
+       currentUser?.role === 'administrator') &&
+      request.status === 'approved'
     );
   };
 
@@ -255,10 +259,10 @@ export default function RequestsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {request.requester?.fullName || 'N/A'}
+                          {request.requester ? `${request.requester.firstName} ${request.requester.lastName}` : 'N/A'}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {request.department}
+                          {request.workUnit}
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -316,6 +320,13 @@ export default function RequestsPage() {
                             Complete
                           </button>
                         )}
+                        <button
+                          onClick={() => window.open(`/requests/${request.id}/print`, '_blank')}
+                          className="text-indigo-600 hover:text-indigo-900"
+                          title="Print"
+                        >
+                          Print
+                        </button>
                         {canCancel(request) && (
                           <button
                             onClick={() => handleCancel(request)}
@@ -366,36 +377,151 @@ export default function RequestsPage() {
   );
 }
 
+// Asset Request Item Interface
+interface AssetRequestItem {
+  assetId: string;
+  assetName: string;
+  measurement: string;
+  requestedAmount: number;
+  permittedAmount: number;
+  examination: string;
+}
+
 // Create Request Modal Component
 function CreateRequestModal({ onClose, onSuccess, currentUser }: { 
   onClose: () => void; 
   onSuccess: () => void;
   currentUser: User | null;
 }) {
+  const [assets, setAssets] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [approvalAuthorities, setApprovalAuthorities] = useState<any[]>([]);
   const [formData, setFormData] = useState({
-    requestType: '' as RequestType,
-    itemName: '',
-    quantity: 1,
-    estimatedCost: '',
-    priority: 'medium' as RequestPriority,
-    department: currentUser?.department || '',
-    purpose: '',
-    justification: '',
-    specifications: '',
+    requestType: 'withdrawal' as RequestType,
+    requestDate: new Date().toISOString().split('T')[0],
+    reason: '',
+    approvalAuthorityId: '',
+    items: [
+      {
+        assetId: '',
+        assetName: '',
+        measurement: 'pcs',
+        requestedAmount: 1,
+        permittedAmount: 0,
+        examination: ''
+      }
+    ] as AssetRequestItem[]
   });
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchAssets();
+    fetchUsers();
+    fetchApprovalAuthorities();
+  }, []);
+
+  const fetchAssets = async () => {
+    try {
+      const data: any = await api.getAssets();
+      const allAssets = Array.isArray(data) ? data : data.data || [];
+      // Filter out assets that are already assigned to other users
+      const availableAssets = allAssets.filter((asset: any) => 
+        asset.status === 'available' || 
+        (asset.status === 'assigned' && asset.assignedTo === currentUser?.id)
+      );
+      setAssets(availableAssets);
+    } catch (err) {
+      console.error('Failed to fetch assets:', err);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const data: any = await api.getUsers();
+      setUsers(Array.isArray(data) ? data : data.data || []);
+    } catch (err) {
+      console.error('Failed to fetch users:', err);
+    }
+  };
+
+  const fetchApprovalAuthorities = async () => {
+    try {
+      const data: any = await api.getApprovalAuthorities();
+      setApprovalAuthorities(Array.isArray(data) ? data : data.data || []);
+    } catch (err) {
+      console.error('Failed to fetch approval authorities:', err);
+    }
+  };
+
+  const handleAddItem = () => {
+    setFormData({
+      ...formData,
+      items: [
+        ...formData.items,
+        {
+          assetId: '',
+          assetName: '',
+          measurement: 'pcs',
+          requestedAmount: 1,
+          permittedAmount: 0,
+          examination: ''
+        }
+      ]
+    });
+  };
+
+  const handleRemoveItem = (index: number) => {
+    if (formData.items.length > 1) {
+      const newItems = formData.items.filter((_, i) => i !== index);
+      setFormData({ ...formData, items: newItems });
+    }
+  };
+
+  const handleItemChange = (index: number, field: keyof AssetRequestItem, value: any) => {
+    const newItems = [...formData.items];
+    newItems[index] = { ...newItems[index], [field]: value };
+    
+    // Auto-fill asset name and measurement when asset is selected
+    if (field === 'assetId' && value) {
+      const selectedAsset = assets.find(a => a.id.toString() === value);
+      if (selectedAsset) {
+        newItems[index].assetName = selectedAsset.name;
+        newItems[index].measurement = selectedAsset.unit || 'pcs';
+      }
+    }
+    
+    setFormData({ ...formData, items: newItems });
+  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      // For withdrawal requests with a single asset, include the assetId
+      // This is required for proper asset assignment when completing the request
+      const firstAssetId = formData.items.length > 0 && formData.items[0].assetId 
+        ? formData.items[0].assetId 
+        : undefined;
+
+      // Submit the request with the items
       const dataToSend = {
-        ...formData,
-        estimatedCost: formData.estimatedCost ? parseFloat(formData.estimatedCost) : undefined,
+        requestType: formData.requestType,
+        assetId: firstAssetId, // Include the first asset ID for assignment tracking
+        itemName: formData.items.map(item => item.assetName).join(', '),
+        quantity: formData.items.reduce((sum, item) => sum + item.requestedAmount, 0),
+        purpose: formData.reason,
+        priority: 'medium' as RequestPriority,
+        workUnit: currentUser?.workUnit || '',
+        approvalAuthorityId: formData.approvalAuthorityId || undefined,
+        justification: `Staff: ${currentUser?.firstName} ${currentUser?.lastName}\nModel: 20`,
+        specifications: JSON.stringify(formData.items),
+        requesterSignature: 'Digital Signature'
       };
+      
       await api.createRequest(dataToSend);
-      alert('Request created successfully!');
+      alert('Asset withdrawal request created successfully!');
       onSuccess();
     } catch (err: any) {
       alert('Failed to create request: ' + err.message);
@@ -404,155 +530,242 @@ function CreateRequestModal({ onClose, onSuccess, currentUser }: {
     }
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <h2 className="text-2xl font-bold mb-4">Create Request</h2>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+      <div className="bg-white rounded-lg max-w-5xl w-full my-8">
+        <div className="p-8">
+          {/* Header */}
+          <div className="text-center border-b pb-4 mb-6">
+            <h1 className="text-2xl font-bold text-gray-900">Woldia University</h1>
+            <h2 className="text-xl font-semibold text-gray-700 mt-2">Asset Withdrawal Request Form</h2>
+            <div className="flex justify-between items-center mt-4 text-sm">
+              <div></div>
+              <div className="text-right">
+                <p><span className="font-medium">Model:</span> 20</p>
+                <p><span className="font-medium">Date:</span> {formData.requestDate}</p>
+              </div>
+            </div>
+          </div>
           
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Requester Info (Auto-filled) */}
+            <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-md">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Request Type *
+                  Requester
                 </label>
-                <select
-                  required
-                  value={formData.requestType}
-                  onChange={(e) => setFormData({ ...formData, requestType: e.target.value as RequestType })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Select type...</option>
-                  <option value="withdrawal">Withdrawal</option>
-                  <option value="purchase">Purchase</option>
-                  <option value="transfer">Transfer</option>
-                  <option value="maintenance">Maintenance</option>
-                  <option value="disposal">Disposal</option>
-                </select>
+                <p className="text-gray-900 font-medium">
+                  {currentUser?.firstName} {currentUser?.lastName}
+                </p>
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Priority *
+                  Work Unit
                 </label>
-                <select
-                  required
-                  value={formData.priority}
-                  onChange={(e) => setFormData({ ...formData, priority: e.target.value as RequestPriority })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="urgent">Urgent</option>
-                </select>
+                <p className="text-gray-900">
+                  {currentUser?.workUnit || 'N/A'}
+                </p>
               </div>
             </div>
 
+            {/* Approval Authority Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Item Name *
+                Select Approval Authority *
               </label>
-              <input
-                type="text"
+              <select
                 required
-                value={formData.itemName}
-                onChange={(e) => setFormData({ ...formData, itemName: e.target.value })}
+                value={formData.approvalAuthorityId}
+                onChange={(e) => setFormData({ ...formData, approvalAuthorityId: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="e.g., Dell Laptops, Office Chairs"
-              />
+              >
+                <option value="">-- Select Approval Authority --</option>
+                {approvalAuthorities.map((authority) => (
+                  <option key={authority.id} value={authority.id}>
+                    {authority.firstName} {authority.middleName || ''} {authority.lastName} - {authority.role.replace('_', ' ')} ({authority.workUnit || 'N/A'})
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-gray-500">
+                Select the approval authority who will review and approve this request
+              </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Quantity *
-                </label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  value={formData.quantity}
-                  onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Estimated Cost
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.estimatedCost}
-                  onChange={(e) => setFormData({ ...formData, estimatedCost: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="0.00"
-                />
-              </div>
-            </div>
-
+            {/* Reason for Request */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Department *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.department}
-                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Purpose *
+                Reason for Request *
               </label>
               <textarea
                 required
-                value={formData.purpose}
-                onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
+                value={formData.reason}
+                onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Explain the purpose of this request..."
+                placeholder="Explain why you need these assets..."
               />
             </div>
 
+            {/* Assets Table */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Justification
-              </label>
-              <textarea
-                value={formData.justification}
-                onChange={(e) => setFormData({ ...formData, justification: e.target.value })}
-                rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Additional justification (optional)..."
-              />
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-lg font-semibold text-gray-900">Requested Assets</h3>
+                <Button type="button" variant="secondary" onClick={handleAddItem} className="text-sm">
+                  + Add Asset
+                </Button>
+              </div>
+
+              <div className="overflow-x-auto border rounded-lg">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-16">
+                        No.
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        Asset Name
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-32">
+                        Measurement
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-32">
+                        Requested Amount
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-32">
+                        Permitted Amount
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-32">
+                        Examination
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-24">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {formData.items.map((item, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-sm text-gray-900 text-center">
+                          {index + 1}
+                        </td>
+                        <td className="px-4 py-3">
+                          <select
+                            required
+                            value={item.assetId}
+                            onChange={(e) => handleItemChange(index, 'assetId', e.target.value)}
+                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="">Select Asset</option>
+                            {assets.map(asset => (
+                              <option key={asset.id} value={asset.id}>
+                                {asset.name} ({asset.serialNumber})
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-4 py-3">
+                          <input
+                            type="text"
+                            required
+                            value={item.measurement}
+                            onChange={(e) => handleItemChange(index, 'measurement', e.target.value)}
+                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="e.g., pcs"
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <input
+                            type="number"
+                            required
+                            min="1"
+                            value={item.requestedAmount}
+                            onChange={(e) => handleItemChange(index, 'requestedAmount', parseInt(e.target.value) || 1)}
+                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <input
+                            type="number"
+                            min="0"
+                            value={item.permittedAmount}
+                            onChange={(e) => handleItemChange(index, 'permittedAmount', parseInt(e.target.value) || 0)}
+                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm bg-gray-50"
+                            placeholder="To be filled"
+                            disabled
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <input
+                            type="text"
+                            value={item.examination}
+                            onChange={(e) => handleItemChange(index, 'examination', e.target.value)}
+                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Notes"
+                          />
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {formData.items.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveItem(index)}
+                              className="text-red-600 hover:text-red-800 text-sm font-medium"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Specifications
-              </label>
-              <textarea
-                value={formData.specifications}
-                onChange={(e) => setFormData({ ...formData, specifications: e.target.value })}
-                rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Technical specifications (optional)..."
-              />
+            {/* Signatures Section */}
+            <div className="border-t pt-6 mt-6">
+              <h3 className="text-sm font-semibold text-gray-700 mb-4">Signatures</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+                <div className="space-y-2">
+                  <p className="font-medium text-gray-900">Requestor:</p>
+                  <div className="space-y-1 text-gray-600">
+                    <p>Name: ....................................</p>
+                    <p>Signature: .............................</p>
+                    <p>Date: ....................................</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="font-medium text-gray-900">Approval Authority:</p>
+                  <div className="space-y-1 text-gray-600">
+                    <p>Name: ....................................</p>
+                    <p>Signature: .............................</p>
+                    <p>Date: ....................................</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="font-medium text-gray-900">Property Officer:</p>
+                  <div className="space-y-1 text-gray-600">
+                    <p>Name: ....................................</p>
+                    <p>Signature: .............................</p>
+                    <p>Date: ....................................</p>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="flex space-x-3 pt-4">
-              <Button type="submit" disabled={loading}>
-                {loading ? 'Creating...' : 'Create Request'}
-              </Button>
-              <Button type="button" variant="outline" onClick={onClose}>
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-3 pt-6 border-t">
+              <Button type="button" variant="secondary" onClick={onClose}>
                 Cancel
+              </Button>
+              <Button type="button" variant="secondary" onClick={handlePrint}>
+                Print
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? 'Submitting...' : 'Submit Request'}
               </Button>
             </div>
           </form>
@@ -581,7 +794,7 @@ function ViewRequestModal({ request, onClose }: { request: Request; onClose: () 
               <div>
                 <label className="text-sm font-medium text-gray-500">Priority</label>
                 <div className="mt-1">
-                  <Badge variant={request.priority === 'urgent' || request.priority === 'high' ? 'error' : 'info'}>
+                  <Badge variant={request.priority === 'urgent' || request.priority === 'high' ? 'danger' : 'info'}>
                     {request.priority}
                   </Badge>
                 </div>
@@ -612,8 +825,8 @@ function ViewRequestModal({ request, onClose }: { request: Request; onClose: () 
 
             <div>
               <label className="text-sm font-medium text-gray-500">Requested By</label>
-              <p className="mt-1 text-gray-900">{request.requester?.fullName || 'N/A'}</p>
-              <p className="text-sm text-gray-500">{request.department}</p>
+              <p className="mt-1 text-gray-900">{request.requester ? `${request.requester.firstName} ${request.requester.lastName}` : 'N/A'}</p>
+              <p className="text-sm text-gray-500">{request.workUnit}</p>
             </div>
 
             <div>

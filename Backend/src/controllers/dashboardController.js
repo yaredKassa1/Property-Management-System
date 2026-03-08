@@ -22,17 +22,22 @@ const getDashboardStats = async (req, res, next) => {
         {
           model: db.User,
           as: 'user',
-          attributes: ['username', 'fullName']
+          attributes: ['username', 'firstName', 'middleName', 'lastName']
         }
       ]
     });
 
-    const activityList = recentActivities.map(log => ({
-      id: log.id,
-      description: `${log.action.replace(/_/g, ' ')}${log.entityType ? ` (${log.entityType})` : ''}`,
-      user: log.user?.fullName || log.user?.username || 'System',
-      timestamp: log.timestamp
-    }));
+    const activityList = recentActivities.map(log => {
+      const fullName = log.user?.firstName 
+        ? `${log.user.firstName}${log.user.middleName ? ' ' + log.user.middleName : ''} ${log.user.lastName}`.trim()
+        : null;
+      return {
+        id: log.id,
+        description: `${log.action.replace(/_/g, ' ')}${log.entityType ? ` (${log.entityType})` : ''}`,
+        user: fullName || log.user?.username || 'System',
+        timestamp: log.timestamp
+      };
+    });
 
     res.status(200).json({
       success: true,
@@ -154,16 +159,16 @@ const getPropertyOfficerStats = async (req, res, next) => {
     // Assignment Analytics
     const assignmentsByDepartment = await db.Asset.findAll({
       attributes: [
-        'department',
+        'workUnit',
         [db.sequelize.fn('COUNT', db.sequelize.col('id')), 'count']
       ],
       where: {
         status: 'assigned',
-        department: {
+        workUnit: {
           [Op.ne]: null
         }
       },
-      group: ['department'],
+      group: ['workUnit'],
       raw: true
     });
 
@@ -280,19 +285,24 @@ const getPropertyOfficerStats = async (req, res, next) => {
         {
           model: db.User,
           as: 'user',
-          attributes: ['username', 'fullName']
+          attributes: ['username', 'firstName', 'middleName', 'lastName']
         }
       ]
     });
 
-    const assetActivityList = recentAssetActivities.map(log => ({
-      id: log.id,
-      action: log.action,
-      description: `${log.action.replace(/_/g, ' ')}`,
-      user: log.user?.fullName || log.user?.username || 'System',
-      timestamp: log.timestamp,
-      details: log.details
-    }));
+    const assetActivityList = recentAssetActivities.map(log => {
+      const fullName = log.user?.firstName 
+        ? `${log.user.firstName}${log.user.middleName ? ' ' + log.user.middleName : ''} ${log.user.lastName}`.trim()
+        : null;
+      return {
+        id: log.id,
+        action: log.action,
+        description: `${log.action.replace(/_/g, ' ')}`,
+        user: fullName || log.user?.username || 'System',
+        timestamp: log.timestamp,
+        details: log.details
+      };
+    });
 
     // Pending Actions Summary
     const pendingActions = {
