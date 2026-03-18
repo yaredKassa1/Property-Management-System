@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Woldia University Property Management System (WDUPMS) - Frontend
 
 A modern web-based property management system built with Next.js for Woldia University.
@@ -173,3 +174,6 @@ This project was developed by:
 ## Support
 
 For issues or questions, contact the development team or system administrator.
+=======
+# Property-Management-System
+>>>>>>> b410f5e93ce79300d0e996ac853725feba7a323e
