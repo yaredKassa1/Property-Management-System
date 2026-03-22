@@ -1,8 +1,16 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Manrope } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ 
+  subsets: ["latin"],
+  variable: '--font-inter',
+});
+
+const manrope = Manrope({ 
+  subsets: ["latin"],
+  variable: '--font-manrope',
+});
 
 export const metadata: Metadata = {
   title: "WDUPMS - Woldia University Property Management System",
@@ -16,7 +24,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <head>
+        <link 
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" 
+          rel="stylesheet" 
+        />
+      </head>
+      <body className={`${inter.variable} ${manrope.variable} ${inter.className}`}>
+        {children}
+      </body>
     </html>
   );
 }
