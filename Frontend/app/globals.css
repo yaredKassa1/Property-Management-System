@@ -184,3 +184,186 @@ table td {
 .bg-white {
   color: #111827;
 }
+
+
+/* Dark Mode Styles */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgb(17, 24, 39)
+  ) rgb(0, 0, 0);
+  color: rgb(229, 231, 235);
+}
+
+html.dark input[type="text"],
+html.dark input[type="email"],
+html.dark input[type="password"],
+html.dark input[type="number"],
+html.dark input[type="date"],
+html.dark input[type="time"],
+html.dark input[type="datetime-local"],
+html.dark input[type="search"],
+html.dark input[type="tel"],
+html.dark input[type="url"],
+html.dark select,
+html.dark textarea {
+  background-color: #1f2937 !important;
+  color: #f3f4f6 !important;
+  -webkit-text-fill-color: #f3f4f6 !important;
+  border-color: #374151 !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #9ca3af !important;
+}
+
+html.dark input:disabled,
+html.dark select:disabled,
+html.dark textarea:disabled {
+  background-color: #111827 !important;
+  color: #6b7280 !important;
+}
+
+html.dark input:-webkit-autofill,
+html.dark input:-webkit-autofill:hover,
+html.dark input:-webkit-autofill:focus,
+html.dark input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #1f2937 inset !important;
+  -webkit-text-fill-color: #f3f4f6 !important;
+}
+
+html.dark select option {
+  background-color: #1f2937;
+  color: #f3f4f6;
+}
+
+html.dark .bg-white {
+  background-color: #1f2937;
+  color: #f3f4f6;
+}
+
+html.dark .bg-gray-50 {
+  background-color: #111827;
+  color: #f3f4f6;
+}
+
+html.dark .bg-gray-100 {
+  background-color: #1f2937;
+  color: #f3f4f6;
+}
+
+html.dark .text-gray-900 {
+  color: #f3f4f6 !important;
+}
+
+html.dark .text-gray-800 {
+  color: #e5e7eb !important;
+}
+
+html.dark .text-gray-700 {
+  color: #d1d5db !important;
+}
+
+html.dark .text-gray-600 {
+  color: #9ca3af !important;
+}
+
+html.dark .text-gray-500 {
+  color: #6b7280 !important;
+}
+
+html.dark .border-gray-200 {
+  border-color: #374151 !important;
+}
+
+html.dark .border-gray-300 {
+  border-color: #4b5563 !important;
+}
+
+html.dark table {
+  color: #f3f4f6;
+}
+
+html.dark table th {
+  color: #e5e7eb !important;
+  background-color: #111827;
+}
+
+html.dark table td {
+  color: #f3f4f6 !important;
+  border-color: #374151;
+}
+
+html.dark .shadow-sm {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+html.dark .shadow {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.6);
+}
+
+html.dark .shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.7);
+}
+
+html.dark .shadow-xl {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.8);
+}
+
+html.dark .hover\:bg-gray-50:hover {
+  background-color: #1f2937 !important;
+}
+
+html.dark .hover\:bg-gray-100:hover {
+  background-color: #111827 !important;
+}
+
+html.dark .hover\:bg-indigo-50:hover {
+  background-color: #312e81 !important;
+}
+
+html.dark .bg-indigo-50 {
+  background-color: #312e81;
+  color: #a5b4fc;
+}
+
+html.dark .bg-blue-50 {
+  background-color: #1e3a8a;
+  color: #93c5fd;
+}
+
+html.dark .bg-green-50 {
+  background-color: #064e3b;
+  color: #86efac;
+}
+
+html.dark .bg-red-50 {
+  background-color: #7f1d1d;
+  color: #fca5a5;
+}
+
+html.dark .bg-red-500 {
+  background-color: #dc2626;
+}
+
+html.dark .text-indigo-600 {
+  color: #a5b4fc !important;
+}
+
+html.dark .text-blue-600 {
+  color: #93c5fd !important;
+}
+
+html.dark .text-red-600 {
+  color: #fca5a5 !important;
+}
+
+html.dark .text-green-600 {
+  color: #86efac !important;
+}

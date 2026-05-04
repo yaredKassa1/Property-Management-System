@@ -9,6 +9,7 @@ const Return = require('./Return')(sequelize, DataTypes);
 const Request = require('./Request')(sequelize, DataTypes);
 const AuditLog = require('./AuditLog')(sequelize, DataTypes);
 const TransferHistory = require('./TransferHistory')(sequelize, DataTypes);
+const Notification = require('./Notification')(sequelize, DataTypes);
 
 // Define associations
 const db = {
@@ -19,7 +20,8 @@ const db = {
   Return,
   Request,
   AuditLog,
-  TransferHistory
+  TransferHistory,
+  Notification,
 };
 
 // ==================== User <-> Asset Relationships ====================
@@ -178,5 +180,9 @@ db.User.hasMany(db.TransferHistory, {
   foreignKey: 'performedBy',
   as: 'transferActions'
 });
+
+// Notification belongs to User
+db.Notification.belongsTo(db.User, { foreignKey: 'userId', as: 'recipient' });
+db.User.hasMany(db.Notification, { foreignKey: 'userId', as: 'notifications' });
 
 module.exports = db;

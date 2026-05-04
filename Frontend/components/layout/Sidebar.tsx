@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { User } from '@/lib/types';
+import { useLanguage } from '@/lib/contexts';
 
 interface SidebarProps {
   user: User;
@@ -11,22 +12,23 @@ interface SidebarProps {
 
 export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
+  const { t } = useLanguage();
 
   const baseNavigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: '📊', roles: ['all'] },
-    { name: 'Assets', href: '/assets', icon: '📦', roles: ['property_officer', 'approval_authority', 'purchase_department', 'quality_assurance', 'staff', 'vice_president'] },
-    { name: 'Assignments', href: '/assignments', icon: '👤', roles: ['property_officer'] },
-    { name: 'Transfers', href: '/transfers', icon: '🔄', roles: ['property_officer', 'staff', 'vice_president', 'approval_authority', 'purchase_department', 'quality_assurance'] },
-    { name: 'Transfer Dashboard', href: '/transfers/dashboard', icon: '📋', roles: ['property_officer'] }, // Only property officers see this
-    { name: 'Returns', href: '/returns', icon: '↩️', roles: ['property_officer', 'staff', 'quality_assurance'] },
-    { name: 'Requests', href: '/requests', icon: '📝', roles: ['property_officer', 'staff', 'approval_authority', 'purchase_department', 'vice_president'] },
-    { name: 'Reports', href: '/reports', icon: '📈', roles: ['property_officer', 'vice_president', 'approval_authority'] },
+    { name: t('dashboard'), href: '/dashboard', icon: '📊', roles: ['all'] },
+    { name: t('assets'), href: '/assets', icon: '📦', roles: ['property_officer', 'approval_authority', 'purchase_department', 'quality_assurance', 'staff', 'vice_president'] },
+    { name: t('assignments'), href: '/assignments', icon: '👤', roles: ['property_officer'] },
+    { name: t('transfers'), href: '/transfers', icon: '🔄', roles: ['property_officer', 'staff', 'vice_president', 'approval_authority', 'purchase_department', 'quality_assurance'] },
+    { name: t('transfer_dashboard'), href: '/transfers/dashboard', icon: '📋', roles: ['property_officer'] },
+    { name: t('returns'), href: '/returns', icon: '↩️', roles: ['property_officer', 'staff', 'quality_assurance'] },
+    { name: t('requests'), href: '/requests', icon: '📝', roles: ['property_officer', 'staff', 'approval_authority', 'purchase_department', 'vice_president'] },
+    { name: t('reports'), href: '/reports', icon: '📈', roles: ['property_officer', 'vice_president', 'approval_authority'] },
   ];
 
   const adminNavigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: '📊', roles: ['administrator'] },
-    { name: 'User Management', href: '/users', icon: '👥', roles: ['administrator'] },
-    { name: 'Audit Logs', href: '/audit-logs', icon: '📋', roles: ['administrator'] },
+    { name: t('dashboard'), href: '/dashboard', icon: '📊', roles: ['administrator'] },
+    { name: t('user_management'), href: '/users', icon: '👥', roles: ['administrator'] },
+    { name: t('audit_logs'), href: '/audit-logs', icon: '📋', roles: ['administrator'] },
   ];
 
   const navigation = user.role === 'administrator' ? adminNavigation : baseNavigation;

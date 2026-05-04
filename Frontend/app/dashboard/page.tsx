@@ -11,6 +11,7 @@ import { DashboardStats, UserRole, User } from '@/lib/types';
 import { formatDateTime } from '@/lib/utils';
 import { getUser } from '@/lib/auth';
 import { exportToCSV, exportToJSON, printDashboard } from '@/lib/exportUtils';
+import { useLanguage } from '@/lib/contexts';
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -24,6 +25,8 @@ export default function DashboardPage() {
   const [propertyOfficerStats, setPropertyOfficerStats] = useState<any>(null);
   const [dateRange, setDateRange] = useState<{ startDate: string; endDate: string } | null>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
+
+  const { t } = useLanguage();
 
   const fetchPropertyOfficerStats = async (params?: { startDate?: string; endDate?: string }) => {
     try {
@@ -103,9 +106,10 @@ export default function DashboardPage() {
             topActions: []
           });
 
-          const events = Array.isArray(securityEventsResponse)
-            ? securityEventsResponse
-            : securityEventsResponse?.data || [];
+          const eventsRaw = securityEventsResponse as any;
+          const events = Array.isArray(eventsRaw)
+            ? eventsRaw
+            : eventsRaw?.data || [];
           setSecurityEvents(events);
         }
 
@@ -220,7 +224,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-            <p className="text-gray-600">Loading dashboard data...</p>
+            <p className="text-gray-600">{t('loading')}...</p>
           </div>
         </div>
       </DashboardLayout>
@@ -245,7 +249,7 @@ export default function DashboardPage() {
                 d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
               />
             </svg>
-            <h3 className="text-lg font-medium text-red-800 mb-2">Something went wrong</h3>
+            <h3 className="text-lg font-medium text-red-800 mb-2">{t('error')}</h3>
             <p className="text-red-700">{error}</p>
           </div>
         </div>
@@ -305,9 +309,9 @@ export default function DashboardPage() {
         )}
         
         <div className="no-print">
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t('dashboard')}</h1>
           <p className="text-gray-600 mt-1">
-            Welcome back • Overview of property management system
+            Welcome back • {t('asset_inventory_overview')}
           </p>
         </div>
 
@@ -332,7 +336,7 @@ export default function DashboardPage() {
                   onClick={() => setShowExportMenu(!showExportMenu)}
                   className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
                 >
-                  📤 Export
+                  📤 {t('export')}
                 </button>
                 
                 {showExportMenu && (
@@ -347,20 +351,20 @@ export default function DashboardPage() {
                           onClick={() => handleExport('csv')}
                           className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
                         >
-                          📊 Export as CSV
+                          📊 {t('export')} as CSV
                         </button>
                         <button
                           onClick={() => handleExport('json')}
                           className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
                         >
-                          📋 Export as JSON
+                          📋 {t('export')} as JSON
                         </button>
                         <hr className="my-2" />
                         <button
                           onClick={handlePrint}
                           className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
                         >
-                          🖨️ Print Dashboard
+                          🖨️ {t('dashboard')}
                         </button>
                       </div>
                     </div>
@@ -371,12 +375,12 @@ export default function DashboardPage() {
 
             {/* Asset Overview Section */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Asset Inventory Overview</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('asset_inventory_overview')}</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                 <Card className="hover:shadow-lg transition-all duration-200 border border-gray-200">
                   <div className="p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs font-medium text-gray-600 uppercase">Total Assets</p>
+                      <p className="text-xs font-medium text-gray-600 uppercase">{t('total_assets')}</p>
                       <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center text-xl text-white">
                         📦
                       </div>
@@ -390,7 +394,7 @@ export default function DashboardPage() {
                 <Card className="hover:shadow-lg transition-all duration-200 border border-gray-200">
                   <div className="p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs font-medium text-gray-600 uppercase">Available</p>
+                      <p className="text-xs font-medium text-gray-600 uppercase">{t('available')}</p>
                       <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center text-xl text-white">
                         ✅
                       </div>
@@ -404,7 +408,7 @@ export default function DashboardPage() {
                 <Card className="hover:shadow-lg transition-all duration-200 border border-gray-200">
                   <div className="p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs font-medium text-gray-600 uppercase">Assigned</p>
+                      <p className="text-xs font-medium text-gray-600 uppercase">{t('assigned')}</p>
                       <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center text-xl text-white">
                         👤
                       </div>
@@ -418,7 +422,7 @@ export default function DashboardPage() {
                 <Card className="hover:shadow-lg transition-all duration-200 border border-gray-200">
                   <div className="p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs font-medium text-gray-600 uppercase">Maintenance</p>
+                      <p className="text-xs font-medium text-gray-600 uppercase">{t('maintenance')}</p>
                       <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center text-xl text-white">
                         🔧
                       </div>
@@ -461,12 +465,12 @@ export default function DashboardPage() {
 
             {/* Transfer and Return Management */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card title="Transfer Management" className="border border-gray-200">
+              <Card title={t('transfer_management')} className="border border-gray-200">
                 <div className="space-y-4">
                   <div className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg">
                     <div>
-                      <p className="text-sm font-medium text-gray-700">Pending Transfers</p>
-                      <p className="text-xs text-gray-500 mt-1">Awaiting VP approval</p>
+                      <p className="text-sm font-medium text-gray-700">{t('pending_transfers')}</p>
+                      <p className="text-xs text-gray-500 mt-1">{t('awaiting_vp_approval')}</p>
                     </div>
                     <div className="text-2xl font-bold text-yellow-600">
                       {propertyOfficerStats.transferStats?.pendingTransfers || 0}
@@ -475,8 +479,8 @@ export default function DashboardPage() {
 
                   <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
                     <div>
-                      <p className="text-sm font-medium text-gray-700">Approved Transfers</p>
-                      <p className="text-xs text-gray-500 mt-1">Ready to complete</p>
+                      <p className="text-sm font-medium text-gray-700">{t('approved_transfers')}</p>
+                      <p className="text-xs text-gray-500 mt-1">{t('ready_to_complete')}</p>
                     </div>
                     <div className="text-2xl font-bold text-blue-600">
                       {propertyOfficerStats.transferStats?.approvedTransfers || 0}
@@ -485,8 +489,8 @@ export default function DashboardPage() {
 
                   <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
                     <div>
-                      <p className="text-sm font-medium text-gray-700">Completed Today</p>
-                      <p className="text-xs text-gray-500 mt-1">Successfully processed</p>
+                      <p className="text-sm font-medium text-gray-700">{t('completed_today')}</p>
+                      <p className="text-xs text-gray-500 mt-1">{t('successfully_processed')}</p>
                     </div>
                     <div className="text-2xl font-bold text-green-600">
                       {propertyOfficerStats.transferStats?.completedToday || 0}
@@ -497,17 +501,17 @@ export default function DashboardPage() {
                     href="/transfers"
                     className="block w-full text-center py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                   >
-                    Manage Transfers
+                    {t('manage_transfers')}
                   </Link>
                 </div>
               </Card>
 
-              <Card title="Return Management" className="border border-gray-200">
+              <Card title={t('return_management')} className="border border-gray-200">
                 <div className="space-y-4">
                   <div className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg">
                     <div>
-                      <p className="text-sm font-medium text-gray-700">Pending Returns</p>
-                      <p className="text-xs text-gray-500 mt-1">Need to receive</p>
+                      <p className="text-sm font-medium text-gray-700">{t('pending_returns')}</p>
+                      <p className="text-xs text-gray-500 mt-1">{t('need_to_receive')}</p>
                     </div>
                     <div className="text-2xl font-bold text-yellow-600">
                       {propertyOfficerStats.returnStats?.pendingReturns || 0}
@@ -516,8 +520,8 @@ export default function DashboardPage() {
 
                   <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
                     <div>
-                      <p className="text-sm font-medium text-gray-700">Under Inspection</p>
-                      <p className="text-xs text-gray-500 mt-1">Quality check required</p>
+                      <p className="text-sm font-medium text-gray-700">{t('under_inspection')}</p>
+                      <p className="text-xs text-gray-500 mt-1">{t('quality_check_required')}</p>
                     </div>
                     <div className="text-2xl font-bold text-orange-600">
                       {propertyOfficerStats.returnStats?.underInspection || 0}
@@ -526,8 +530,8 @@ export default function DashboardPage() {
 
                   <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
                     <div>
-                      <p className="text-sm font-medium text-gray-700">Completed Today</p>
-                      <p className="text-xs text-gray-500 mt-1">Successfully processed</p>
+                      <p className="text-sm font-medium text-gray-700">{t('completed_today')}</p>
+                      <p className="text-xs text-gray-500 mt-1">{t('successfully_processed')}</p>
                     </div>
                     <div className="text-2xl font-bold text-green-600">
                       {propertyOfficerStats.returnStats?.completedToday || 0}
@@ -538,52 +542,52 @@ export default function DashboardPage() {
                     href="/returns"
                     className="block w-full text-center py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                   >
-                    Manage Returns
+                    {t('manage_returns')}
                   </Link>
                 </div>
               </Card>
             </div>
 
             {/* Pending Actions Summary */}
-            <Card title="⚡ Priority Actions" className="border-2 border-indigo-200 bg-indigo-50">
+            <Card title={t('priority_actions')} className="border-2 border-indigo-200 bg-indigo-50">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-white rounded-lg p-4 border border-indigo-100">
-                  <p className="text-xs font-medium text-gray-600 mb-2">Transfers to Complete</p>
+                  <p className="text-xs font-medium text-gray-600 mb-2">{t('transfers_to_complete')}</p>
                   <p className="text-3xl font-bold text-indigo-600">
                     {propertyOfficerStats.pendingActions?.transfersToComplete || 0}
                   </p>
                   <Link href="/transfers?status=approved" className="text-xs text-indigo-600 hover:underline mt-2 inline-block">
-                    View Details →
+                    {t('view_details')}
                   </Link>
                 </div>
 
                 <div className="bg-white rounded-lg p-4 border border-indigo-100">
-                  <p className="text-xs font-medium text-gray-600 mb-2">Returns to Receive</p>
+                  <p className="text-xs font-medium text-gray-600 mb-2">{t('returns_to_receive')}</p>
                   <p className="text-3xl font-bold text-indigo-600">
                     {propertyOfficerStats.pendingActions?.returnsToReceive || 0}
                   </p>
                   <Link href="/returns?status=pending" className="text-xs text-indigo-600 hover:underline mt-2 inline-block">
-                    View Details →
+                    {t('view_details')}
                   </Link>
                 </div>
 
                 <div className="bg-white rounded-lg p-4 border border-indigo-100">
-                  <p className="text-xs font-medium text-gray-600 mb-2">Returns to Inspect</p>
+                  <p className="text-xs font-medium text-gray-600 mb-2">{t('returns_to_inspect')}</p>
                   <p className="text-3xl font-bold text-indigo-600">
                     {propertyOfficerStats.pendingActions?.returnsToInspect || 0}
                   </p>
                   <Link href="/returns?status=under_inspection" className="text-xs text-indigo-600 hover:underline mt-2 inline-block">
-                    View Details →
+                    {t('view_details')}
                   </Link>
                 </div>
 
                 <div className="bg-white rounded-lg p-4 border border-indigo-100">
-                  <p className="text-xs font-medium text-gray-600 mb-2">Assets in Maintenance</p>
+                  <p className="text-xs font-medium text-gray-600 mb-2">{t('assets_to_maintain')}</p>
                   <p className="text-3xl font-bold text-indigo-600">
                     {propertyOfficerStats.pendingActions?.assetsToMaintain || 0}
                   </p>
                   <Link href="/assets?status=under_maintenance" className="text-xs text-indigo-600 hover:underline mt-2 inline-block">
-                    View Details →
+                    {t('view_details')}
                   </Link>
                 </div>
               </div>
@@ -591,7 +595,7 @@ export default function DashboardPage() {
 
             {/* Asset Breakdown and Activities */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card title="Asset Condition Breakdown" className="border border-gray-200">
+              <Card title={t('asset_condition_breakdown')} className="border border-gray-200">
                 <div className="space-y-3">
                   {propertyOfficerStats.conditionBreakdown?.map((condition: any) => (
                     <div key={condition.condition} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded">
@@ -602,51 +606,51 @@ export default function DashboardPage() {
                     </div>
                   ))}
                   {(!propertyOfficerStats.conditionBreakdown || propertyOfficerStats.conditionBreakdown.length === 0) && (
-                    <p className="text-sm text-gray-500 text-center py-4">No data available</p>
+                    <p className="text-sm text-gray-500 text-center py-4">{t('no_data_available')}</p>
                   )}
                 </div>
               </Card>
 
-              <Card title="Asset Category Breakdown" className="border border-gray-200">
+              <Card title={t('asset_category_breakdown')} className="border border-gray-200">
                 <div className="space-y-3">
                   {propertyOfficerStats.categoryBreakdown?.map((category: any) => (
                     <div key={category.category} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded">
                       <span className="text-sm font-medium text-gray-700 capitalize">
-                        {category.category === 'fixed' ? 'Fixed Assets' : 'Fixed Consumable'}
+                        {category.category === 'fixed' ? t('fixed_assets') : t('fixed_consumable')}
                       </span>
                       <span className="text-sm font-bold text-gray-900">{category.count}</span>
                     </div>
                   ))}
                   {(!propertyOfficerStats.categoryBreakdown || propertyOfficerStats.categoryBreakdown.length === 0) && (
-                    <p className="text-sm text-gray-500 text-center py-4">No data available</p>
+                    <p className="text-sm text-gray-500 text-center py-4">{t('no_data_available')}</p>
                   )}
                 </div>
               </Card>
 
-              <Card title="Quick Actions" className="border border-gray-200">
+              <Card title={t('quick_actions')} className="border border-gray-200">
                 <div className="space-y-3">
                   <Link
                     href="/assets/new"
                     className="block rounded-lg border border-gray-200 p-3 hover:border-blue-400 hover:bg-blue-50 transition-colors"
                   >
-                    <p className="text-sm font-semibold text-gray-900">Register New Asset</p>
-                    <p className="text-xs text-gray-500 mt-1">Add asset to inventory</p>
+                    <p className="text-sm font-semibold text-gray-900">{t('register_new_asset')}</p>
+                    <p className="text-xs text-gray-500 mt-1">{t('add_asset_to_inventory')}</p>
                   </Link>
 
                   <Link
                     href="/assignments"
                     className="block rounded-lg border border-gray-200 p-3 hover:border-blue-400 hover:bg-blue-50 transition-colors"
                   >
-                    <p className="text-sm font-semibold text-gray-900">Assign Asset</p>
-                    <p className="text-xs text-gray-500 mt-1">Allocate to staff member</p>
+                    <p className="text-sm font-semibold text-gray-900">{t('assign_asset')}</p>
+                    <p className="text-xs text-gray-500 mt-1">{t('allocate_to_staff')}</p>
                   </Link>
 
                   <Link
                     href="/returns"
                     className="block rounded-lg border border-gray-200 p-3 hover:border-blue-400 hover:bg-blue-50 transition-colors"
                   >
-                    <p className="text-sm font-semibold text-gray-900">Process Returns</p>
-                    <p className="text-xs text-gray-500 mt-1">Receive and inspect returns</p>
+                    <p className="text-sm font-semibold text-gray-900">{t('process_return')}</p>
+                    <p className="text-xs text-gray-500 mt-1">{t('record_asset_returns')}</p>
                   </Link>
 
                   <Link

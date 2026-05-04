@@ -446,10 +446,20 @@ function CreateRequestModal({ onClose, onSuccess, currentUser }: {
 
   const fetchApprovalAuthorities = async () => {
     try {
-      const data: any = await api.getApprovalAuthorities();
-      setApprovalAuthorities(Array.isArray(data) ? data : data.data || []);
+      // Try to fetch filtered approval authorities based on staff hierarchy
+      const data: any = await api.getFilteredApprovalAuthorities();
+      const authorities = Array.isArray(data) ? data : data.data || [];
+      setApprovalAuthorities(authorities);
     } catch (err) {
-      console.error('Failed to fetch approval authorities:', err);
+      console.error('Failed to fetch filtered approval authorities, falling back to all authorities:', err);
+      // Fallback to all approval authorities if filtered endpoint fails
+      try {
+        const data: any = await api.getApprovalAuthorities();
+        const authorities = Array.isArray(data) ? data : data.data || [];
+        setApprovalAuthorities(authorities);
+      } catch (fallbackErr) {
+        console.error('Failed to fetch approval authorities:', fallbackErr);
+      }
     }
   };
 

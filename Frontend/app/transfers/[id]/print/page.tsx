@@ -88,9 +88,7 @@ export default function TransferPrintPage() {
     try {
       console.log('Fetching transfer with ID:', transferId);
       // Fetch real transfer data from the API
-      const response = await api.getTransferById(transferId);
-      console.log('API Response:', response);
-      
+      const response: any = await api.getTransferById(transferId);
       const transferData = response?.data || response;
       console.log('Transfer Data:', transferData);
       

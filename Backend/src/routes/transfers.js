@@ -125,11 +125,10 @@ router.post(
 );
 
 // @route   POST /api/transfers/:id/reject
-// @desc    Reject transfer
-// @access  Private (approval_authority, vice_president, administrator)
+// @desc    Reject transfer (recipient or approval authority)
+// @access  Private (recipient toUserId, approval_authority, vice_president, administrator)
 router.post(
   '/:id/reject',
-  requirePermission('approve_transfers'),
   [
     param('id')
       .isUUID()
