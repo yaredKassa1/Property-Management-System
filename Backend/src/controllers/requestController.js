@@ -1,5 +1,6 @@
 const { Op } = require('sequelize');
 const db = require('../models');
+const { createNotification } = require('./notificationController');
 const { 
   notifyRequestCreated, 
   notifyRequestApproved, 
@@ -218,6 +219,40 @@ const createRequest = async (req, res, next) => {
       console.error('Failed to send email notification:', emailError);
     }
 
+    // In-app notifications
+    try {
+      const requesterName = `${createdRequest.requester?.firstName || ''} ${createdRequest.requester?.lastName || ''}`.trim();
+      const itemName = createdRequest.itemName || 'an asset';
+
+      // Notify the assigned approval authority
+      if (createdRequest.approvalAuthorityId) {
+        await createNotification({
+          userIds: createdRequest.approvalAuthorityId,
+          title: 'New Asset Request',
+          message: `${requesterName} submitted a request for "${itemName}". Please review and approve.`,
+          type: 'request',
+          relatedId: createdRequest.id,
+        });
+      }
+
+      // Notify all property officers
+      const propertyOfficers = await db.User.findAll({
+        where: { role: 'property_officer', isActive: true },
+        attributes: ['id'],
+      });
+      if (propertyOfficers.length) {
+        await createNotification({
+          userIds: propertyOfficers.map(u => u.id),
+          title: 'New Asset Request',
+          message: `${requesterName} submitted a request for "${itemName}".`,
+          type: 'request',
+          relatedId: createdRequest.id,
+        });
+      }
+    } catch (notifError) {
+      console.error('Failed to create in-app notification:', notifError.message, notifError.stack);
+    }
+
     res.status(201).json({
       success: true,
       message: 'Request created successfully',
@@ -382,6 +417,17 @@ const approveRequest = async (req, res, next) => {
       console.error('Failed to send email notification:', emailError);
     }
 
+    // In-app notification to requester
+    try {
+      await createNotification({
+        userIds: updatedRequest.requestedBy,
+        title: 'Request Approved',
+        message: `Your request for "${updatedRequest.itemName}" has been approved.`,
+        type: 'request',
+        relatedId: updatedRequest.id,
+      });
+    } catch (e) { console.error('Notification error:', e); }
+
     res.status(200).json({
       success: true,
       message: 'Request approved successfully',
@@ -454,6 +500,17 @@ const rejectRequest = async (req, res, next) => {
     } catch (emailError) {
       console.error('Failed to send email notification:', emailError);
     }
+
+    // In-app notification to requester
+    try {
+      await createNotification({
+        userIds: updatedRequest.requestedBy,
+        title: 'Request Rejected',
+        message: `Your request for "${updatedRequest.itemName}" was rejected. Reason: ${rejectionReason}`,
+        type: 'request',
+        relatedId: updatedRequest.id,
+      });
+    } catch (e) { console.error('Notification error:', e); }
 
     res.status(200).json({
       success: true,
@@ -532,6 +589,17 @@ const completeRequest = async (req, res, next) => {
     } catch (emailError) {
       console.error('Failed to send email notification:', emailError);
     }
+
+    // In-app notification to requester
+    try {
+      await createNotification({
+        userIds: updatedRequest.requestedBy,
+        title: 'Request Completed',
+        message: `Your request for "${updatedRequest.itemName}" has been completed.`,
+        type: 'request',
+        relatedId: updatedRequest.id,
+      });
+    } catch (e) { console.error('Notification error:', e); }
 
     res.status(200).json({
       success: true,

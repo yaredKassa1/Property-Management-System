@@ -1,5 +1,6 @@
 const { Op } = require('sequelize');
 const db = require('../models');
+const { createNotification } = require('./notificationController');
 const { 
   notifyTransferInitiated, 
   notifyTransferApproved, 
@@ -250,7 +251,35 @@ const createTransfer = async (req, res, next) => {
       await notifyTransferInitiated(createdTransfer, createdTransfer.fromUser, createdTransfer.toUser);
     } catch (emailError) {
       console.error('Failed to send email notification:', emailError);
-      // Don't fail the request if email fails
+    }
+
+    // In-app notifications
+    try {
+      const fromName = `${createdTransfer.fromUser?.firstName || ''} ${createdTransfer.fromUser?.lastName || ''}`.trim();
+      const assetName = createdTransfer.asset?.name || 'an asset';
+
+      // Notify recipient
+      await createNotification({
+        userIds: createdTransfer.toUserId,
+        title: 'Transfer Request',
+        message: `${fromName} wants to transfer "${assetName}" to you. Please approve or reject.`,
+        type: 'transfer',
+        relatedId: createdTransfer.id,
+      });
+
+      // Notify all property officers
+      const officers = await db.User.findAll({ where: { role: 'property_officer', isActive: true }, attributes: ['id'] });
+      if (officers.length) {
+        await createNotification({
+          userIds: officers.map(u => u.id),
+          title: 'New Transfer Request',
+          message: `${fromName} initiated a transfer of "${assetName}".`,
+          type: 'transfer',
+          relatedId: createdTransfer.id,
+        });
+      }
+    } catch (notifError) {
+      console.error('Failed to create transfer notification:', notifError.message);
     }
 
     res.status(201).json({
@@ -342,6 +371,29 @@ const approveTransfer = async (req, res, next) => {
       console.error('Failed to send email notification:', emailError);
     }
 
+    // In-app: notify transferor + property officers
+    try {
+      const toName = `${updatedTransfer.toUser?.firstName || ''} ${updatedTransfer.toUser?.lastName || ''}`.trim();
+      const assetName = updatedTransfer.asset?.name || 'an asset';
+      await createNotification({
+        userIds: updatedTransfer.fromUserId,
+        title: 'Transfer Approved',
+        message: `${toName} approved the transfer of "${assetName}". Property officer will complete it.`,
+        type: 'transfer',
+        relatedId: id,
+      });
+      const officers = await db.User.findAll({ where: { role: 'property_officer', isActive: true }, attributes: ['id'] });
+      if (officers.length) {
+        await createNotification({
+          userIds: officers.map(u => u.id),
+          title: 'Transfer Approved — Action Required',
+          message: `Transfer of "${assetName}" was approved. Please complete it.`,
+          type: 'transfer',
+          relatedId: id,
+        });
+      }
+    } catch (e) { console.error('Notification error:', e.message); }
+
     res.status(200).json({
       success: true,
       message: 'Transfer approved successfully',
@@ -383,6 +435,18 @@ const rejectTransfer = async (req, res, next) => {
       });
     }
 
+    // Allow: recipient (toUser), approval_authority, vice_president, administrator
+    const canReject =
+      transfer.toUserId === req.user.id ||
+      ['approval_authority', 'vice_president', 'administrator'].includes(req.user.role);
+
+    if (!canReject) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the recipient or an approval authority can reject this transfer'
+      });
+    }
+
     await transfer.update({
       status: 'rejected',
       approvedBy: req.user.id,
@@ -417,6 +481,19 @@ const rejectTransfer = async (req, res, next) => {
     } catch (emailError) {
       console.error('Failed to send email notification:', emailError);
     }
+
+    // In-app: notify transferor
+    try {
+      const rejectorName = `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim();
+      const assetName = updatedTransfer.asset?.name || 'an asset';
+      await createNotification({
+        userIds: updatedTransfer.fromUserId,
+        title: 'Transfer Rejected',
+        message: `Your transfer of "${assetName}" was rejected by ${rejectorName}. Reason: ${rejectionReason}`,
+        type: 'transfer',
+        relatedId: id,
+      });
+    } catch (e) { console.error('Notification error:', e.message); }
 
     res.status(200).json({
       success: true,

@@ -11,12 +11,27 @@ const {
   updateUser,
   deleteUser,
   resetPassword,
+  changePassword,
   getUserStats,
-  getApprovalAuthorities
+  getApprovalAuthorities,
+  getFilteredApprovalAuthorities
 } = require('../controllers/userController');
 
 // All routes require authentication
 router.use(verifyToken);
+
+// @route   POST /api/users/change-password
+// @desc    Change own password
+// @access  Private (any authenticated user)
+router.post(
+  '/change-password',
+  [
+    body('currentPassword').notEmpty().withMessage('Current password is required'),
+    body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters'),
+  ],
+  validate,
+  changePassword
+);
 
 // Most routes require administrator permission (manage_users)
 // But we'll allow property_officer to read users for assignment purposes
@@ -25,6 +40,11 @@ router.use(verifyToken);
 // @desc    Get user statistics
 // @access  Private (administrator only)
 router.get('/stats/summary', requirePermission('manage_users'), getUserStats);
+
+// @route   GET /api/users/approval-authorities/filtered
+// @desc    Get filtered approval authorities based on staff member's hierarchy
+// @access  Private (all authenticated users)
+router.get('/approval-authorities/filtered', getFilteredApprovalAuthorities);
 
 // @route   GET /api/users/approval-authorities
 // @desc    Get all approval authorities (for request assignment)
@@ -105,18 +125,24 @@ router.post(
       .notEmpty()
       .withMessage('First name is required')
       .isLength({ max: 50 })
-      .withMessage('First name must not exceed 50 characters'),
+      .withMessage('First name must not exceed 50 characters')
+      .matches(/^[a-zA-Z\s]+$/)
+      .withMessage('First name can only contain letters and spaces'),
     body('middleName')
       .optional()
       .trim()
       .isLength({ max: 50 })
-      .withMessage('Middle name must not exceed 50 characters'),
+      .withMessage('Middle name must not exceed 50 characters')
+      .matches(/^[a-zA-Z\s]*$/)
+      .withMessage('Middle name can only contain letters and spaces'),
     body('lastName')
       .trim()
       .notEmpty()
       .withMessage('Last name is required')
       .isLength({ max: 50 })
-      .withMessage('Last name must not exceed 50 characters'),
+      .withMessage('Last name must not exceed 50 characters')
+      .matches(/^[a-zA-Z\s]+$/)
+      .withMessage('Last name can only contain letters and spaces'),
     body('phoneNumber')
       .optional()
       .trim()
@@ -171,17 +197,23 @@ router.put(
       .optional()
       .trim()
       .isLength({ max: 50 })
-      .withMessage('First name must not exceed 50 characters'),
+      .withMessage('First name must not exceed 50 characters')
+      .matches(/^[a-zA-Z\s]*$/)
+      .withMessage('First name can only contain letters and spaces'),
     body('middleName')
       .optional()
       .trim()
       .isLength({ max: 50 })
-      .withMessage('Middle name must not exceed 50 characters'),
+      .withMessage('Middle name must not exceed 50 characters')
+      .matches(/^[a-zA-Z\s]*$/)
+      .withMessage('Middle name can only contain letters and spaces'),
     body('lastName')
       .optional()
       .trim()
       .isLength({ max: 50 })
-      .withMessage('Last name must not exceed 50 characters'),
+      .withMessage('Last name must not exceed 50 characters')
+      .matches(/^[a-zA-Z\s]*$/)
+      .withMessage('Last name can only contain letters and spaces'),
     body('phoneNumber')
       .optional()
       .trim()

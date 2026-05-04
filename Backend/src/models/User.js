@@ -78,6 +78,32 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       comment: 'Work unit - can be department, college, institute, or administrative unit'
     },
+    wing: {
+      type: DataTypes.ENUM('academic', 'administrative'),
+      allowNull: false,
+      defaultValue: 'academic',
+      comment: 'User wing: academic or administrative'
+    },
+    college: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      comment: 'College name (for academic wing)'
+    },
+    school: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      comment: 'School name (for academic wing, can be null)'
+    },
+    department: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      comment: 'Department name (for academic wing)'
+    },
+    administrativeUnit: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      comment: 'Administrative unit (for administrative wing)'
+    },
     isActive: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,

@@ -282,7 +282,7 @@ export default function AssignmentsPage() {
                 onClick={() => {
                   setSearchAsset('');
                   setStatusFilter('all');
-                  setDepartmentFilter('all');
+                  setWorkUnitFilter('all');
                 }}
                 variant="outline"
               >

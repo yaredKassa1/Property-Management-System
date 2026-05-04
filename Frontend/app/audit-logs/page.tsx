@@ -87,8 +87,8 @@ export default function AuditLogsPage() {
     setTimeout(() => fetchAuditLogs(), 100);
   };
 
-  const getStatusColor = (status: string): string => {
-    const colors: Record<string, string> = {
+  const getStatusColor = (status: string): 'success' | 'warning' | 'error' | 'default' => {
+    const colors: Record<string, 'success' | 'warning' | 'error' | 'default'> = {
       success: 'success',
       failure: 'warning',
       error: 'error',
@@ -96,7 +96,7 @@ export default function AuditLogsPage() {
     return colors[status] || 'default';
   };
 
-  const getActionColor = (action: string): string => {
+  const getActionColor = (action: string): 'info' | 'success' | 'warning' | 'error' | 'default' => {
     if (action.includes('LOGIN')) return 'info';
     if (action.includes('CREATE')) return 'success';
     if (action.includes('UPDATE')) return 'warning';

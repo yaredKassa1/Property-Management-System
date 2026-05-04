@@ -8,6 +8,10 @@ import { Badge } from '@/components/ui/Badge';
 import { api } from '@/lib/api';
 import { getUser } from '@/lib/auth';
 import { User, UserRole } from '@/lib/types';
+import { WingSelectionModal } from './WingSelectionModal';
+import { ACADEMIC_COLLEGES, ACADEMIC_SCHOOLS, ACADEMIC_DEPARTMENTS, ADMINISTRATIVE_UNITS } from './organizationalData';
+import { AcademicWingForm } from './AcademicWingForm';
+import { AdministrativeWingForm } from './AdministrativeWingForm';
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -15,6 +19,8 @@ export default function UsersPage() {
   const [error, setError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showWingSelection, setShowWingSelection] = useState(false);
+  const [selectedWing, setSelectedWing] = useState<'academic' | 'administrative' | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -88,8 +94,8 @@ export default function UsersPage() {
     setShowEditModal(true);
   };
 
-  const getRoleBadgeColor = (role: UserRole): string => {
-    const colors: Record<UserRole, string> = {
+  const getRoleBadgeColor = (role: UserRole): 'error' | 'warning' | 'info' | 'default' => {
+    const colors: Record<UserRole, 'error' | 'warning' | 'info' | 'default'> = {
       administrator: 'error',
       vice_president: 'warning',
       property_officer: 'info',
@@ -130,7 +136,7 @@ export default function UsersPage() {
             <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
             <p className="text-gray-500 mt-1">Manage system users and access control</p>
           </div>
-          <Button onClick={() => setShowCreateModal(true)}>
+          <Button onClick={() => setShowWingSelection(true)}>
             Create User
           </Button>
         </div>
@@ -204,7 +210,7 @@ export default function UsersPage() {
                         </Badge>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+                        {(user as any).lastLogin ? new Date((user as any).lastLogin).toLocaleDateString() : 'Never'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                         <button
@@ -240,12 +246,29 @@ export default function UsersPage() {
           </div>
         </Card>
 
+        {/* Wing Selection Modal */}
+        {showWingSelection && (
+          <WingSelectionModal
+            onSelectWing={(wing) => {
+              setSelectedWing(wing);
+              setShowWingSelection(false);
+              setShowCreateModal(true);
+            }}
+            onClose={() => setShowWingSelection(false)}
+          />
+        )}
+
         {/* Create User Modal */}
-        {showCreateModal && (
+        {showCreateModal && selectedWing && (
           <CreateUserModal
-            onClose={() => setShowCreateModal(false)}
+            wing={selectedWing}
+            onClose={() => {
+              setShowCreateModal(false);
+              setSelectedWing(null);
+            }}
             onSuccess={() => {
               setShowCreateModal(false);
+              setSelectedWing(null);
               fetchUsers();
             }}
           />
@@ -272,7 +295,7 @@ export default function UsersPage() {
 }
 
 // Create User Modal Component
-function CreateUserModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+function CreateUserModal({ wing, onClose, onSuccess }: { wing: 'academic' | 'administrative'; onClose: () => void; onSuccess: () => void }) {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -283,13 +306,183 @@ function CreateUserModal({ onClose, onSuccess }: { onClose: () => void; onSucces
     countryCode: '+251',
     phoneNumber: '',
     role: 'staff' as UserRole,
+    wing,
+    college: '',
+    school: '',
+    department: '',
+    administrativeUnit: '',
     workUnit: '',
     isActive: true,
   });
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [newCollege, setNewCollege] = useState('');
+  const [newSchool, setNewSchool] = useState('');
+  const [newDepartment, setNewDepartment] = useState('');
+  const [newAdminUnit, setNewAdminUnit] = useState('');
+  const [showNewCollegeInput, setShowNewCollegeInput] = useState(false);
+  const [showNewSchoolInput, setShowNewSchoolInput] = useState(false);
+  const [showNewDepartmentInput, setShowNewDepartmentInput] = useState(false);
+  const [showNewAdminUnitInput, setShowNewAdminUnitInput] = useState(false);
+  
+  // Dynamic lists for colleges, schools, departments
+  const [colleges, setColleges] = useState<string[]>([...ACADEMIC_COLLEGES]);
+  const [schools, setSchools] = useState<Record<string, string[] | null>>(ACADEMIC_SCHOOLS);
+  const [departments, setDepartments] = useState<Record<string, string[]>>(ACADEMIC_DEPARTMENTS);
+  const [adminUnits, setAdminUnits] = useState<string[]>([...ADMINISTRATIVE_UNITS]);
+
+  // Validation functions
+  const validateName = (name: string, fieldName: string, required = true): string => {
+    if (required && !name.trim()) {
+      return `${fieldName} is required`;
+    }
+    if (name && !/^[a-zA-Z\s]+$/.test(name)) {
+      return `${fieldName} can only contain letters and spaces`;
+    }
+    if (name && name.length > 50) {
+      return `${fieldName} must be less than 50 characters`;
+    }
+    return '';
+  };
+
+  const validateUsername = (username: string): string => {
+    if (!username.trim()) {
+      return 'Username is required';
+    }
+    if (username.length < 3 || username.length > 50) {
+      return 'Username must be between 3 and 50 characters';
+    }
+    if (!/^[a-zA-Z0-9._-]+$/.test(username)) {
+      return 'Username can only contain letters, numbers, dots, underscores, and hyphens';
+    }
+    return '';
+  };
+
+  const validateEmail = (email: string): string => {
+    if (!email.trim()) {
+      return 'Email is required';
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return 'Please enter a valid email address';
+    }
+    return '';
+  };
+
+  const validatePassword = (password: string): string => {
+    if (!password) {
+      return 'Password is required';
+    }
+    if (password.length < 6) {
+      return 'Password must be at least 6 characters long';
+    }
+    return '';
+  };
+
+  const validatePhoneNumber = (phoneNumber: string): string => {
+    if (phoneNumber && !/^[79]\d{8}$/.test(phoneNumber)) {
+      return 'Phone number must be 9 digits starting with 7 or 9';
+    }
+    return '';
+  };
+
+  // Real-time validation
+  const handleFieldChange = (field: string, value: string) => {
+    console.log('handleFieldChange called:', field, value);
+    
+    setFormData(prevFormData => {
+      console.log('Previous formData:', prevFormData);
+      const newFormData = { ...prevFormData, [field]: value };
+      console.log('New formData:', newFormData);
+      return newFormData;
+    });
+    
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prevErrors => ({ ...prevErrors, [field]: '' }));
+    }
+
+    // Real-time validation
+    let error = '';
+    switch (field) {
+      case 'firstName':
+        error = validateName(value, 'First name', true);
+        break;
+      case 'middleName':
+        error = validateName(value, 'Middle name', false);
+        break;
+      case 'lastName':
+        error = validateName(value, 'Last name', true);
+        break;
+      case 'username':
+        error = validateUsername(value);
+        break;
+      case 'email':
+        error = validateEmail(value);
+        break;
+      case 'password':
+        error = validatePassword(value);
+        break;
+      case 'phoneNumber':
+        error = validatePhoneNumber(value);
+        break;
+      case 'college':
+      case 'school':
+      case 'department':
+      case 'administrativeUnit':
+        // These fields don't need real-time validation, just update
+        break;
+    }
+    
+    if (error) {
+      setErrors(prevErrors => ({ ...prevErrors, [field]: error }));
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    
+    newErrors.firstName = validateName(formData.firstName, 'First name', true);
+    newErrors.middleName = validateName(formData.middleName, 'Middle name', false);
+    newErrors.lastName = validateName(formData.lastName, 'Last name', true);
+    newErrors.username = validateUsername(formData.username);
+    newErrors.email = validateEmail(formData.email);
+    newErrors.password = validatePassword(formData.password);
+    newErrors.phoneNumber = validatePhoneNumber(formData.phoneNumber);
+
+    // Wing-specific validation
+    if (wing === 'academic') {
+      if (!formData.college) {
+        newErrors.college = 'College is required';
+      }
+      // School is optional
+      if (!formData.department) {
+        newErrors.department = 'Department is required';
+      }
+    } else if (wing === 'administrative') {
+      if (!formData.administrativeUnit) {
+        newErrors.administrativeUnit = 'Administrative unit is required';
+      }
+    }
+
+    // Remove empty errors
+    Object.keys(newErrors).forEach(key => {
+      if (!newErrors[key]) {
+        delete newErrors[key];
+      }
+    });
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -302,15 +495,24 @@ function CreateUserModal({ onClose, onSuccess }: { onClose: () => void; onSucces
       alert('User created successfully!');
       onSuccess();
     } catch (err: any) {
-      alert('Failed to create user: ' + err.message);
+      // Handle server validation errors
+      if (err.response?.data?.errors) {
+        const serverErrors: Record<string, string> = {};
+        err.response.data.errors.forEach((error: any) => {
+          serverErrors[error.field] = error.message;
+        });
+        setErrors(serverErrors);
+      } else {
+        alert('Failed to create user: ' + err.message);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/20 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <button
@@ -334,10 +536,15 @@ function CreateUserModal({ onClose, onSuccess }: { onClose: () => void; onSucces
                   type="text"
                   required
                   value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => handleFieldChange('username', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.username ? 'border-red-500' : 'border-gray-300'
+                  }`}
                   placeholder="john.doe"
                 />
+                {errors.username && (
+                  <p className="text-red-500 text-xs mt-1">{errors.username}</p>
+                )}
               </div>
 
               <div>
@@ -348,10 +555,15 @@ function CreateUserModal({ onClose, onSuccess }: { onClose: () => void; onSucces
                   type="email"
                   required
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => handleFieldChange('email', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.email ? 'border-red-500' : 'border-gray-300'
+                  }`}
                   placeholder="john@woldia.edu.et"
                 />
+                {errors.email && (
+                  <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+                )}
               </div>
             </div>
 
@@ -364,10 +576,15 @@ function CreateUserModal({ onClose, onSuccess }: { onClose: () => void; onSucces
                   type="text"
                   required
                   value={formData.firstName}
-                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => handleFieldChange('firstName', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.firstName ? 'border-red-500' : 'border-gray-300'
+                  }`}
                   placeholder="John"
                 />
+                {errors.firstName && (
+                  <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>
+                )}
               </div>
 
               <div>
@@ -377,10 +594,15 @@ function CreateUserModal({ onClose, onSuccess }: { onClose: () => void; onSucces
                 <input
                   type="text"
                   value={formData.middleName}
-                  onChange={(e) => setFormData({ ...formData, middleName: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => handleFieldChange('middleName', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.middleName ? 'border-red-500' : 'border-gray-300'
+                  }`}
                   placeholder="Michael"
                 />
+                {errors.middleName && (
+                  <p className="text-red-500 text-xs mt-1">{errors.middleName}</p>
+                )}
               </div>
 
               <div>
@@ -391,10 +613,15 @@ function CreateUserModal({ onClose, onSuccess }: { onClose: () => void; onSucces
                   type="text"
                   required
                   value={formData.lastName}
-                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => handleFieldChange('lastName', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.lastName ? 'border-red-500' : 'border-gray-300'
+                  }`}
                   placeholder="Doe"
                 />
+                {errors.lastName && (
+                  <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>
+                )}
               </div>
             </div>
 
@@ -417,16 +644,21 @@ function CreateUserModal({ onClose, onSuccess }: { onClose: () => void; onSucces
                     onChange={(e) => {
                       const value = e.target.value.replace(/\D/g, '');
                       if (value.length <= 9) {
-                        setFormData({ ...formData, phoneNumber: value });
+                        handleFieldChange('phoneNumber', value);
                       }
                     }}
                     pattern="[79]\d{8}"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={`w-full px-3 py-2 border rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.phoneNumber ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="9XXXXXXXX or 7XXXXXXXX"
                     title="Enter 9 digits starting with 9 (Ethio Telecom) or 7 (Safaricom)"
                   />
                 </div>
               </div>
+              {errors.phoneNumber && (
+                <p className="text-red-500 text-xs mt-1">{errors.phoneNumber}</p>
+              )}
               <p className="text-xs text-gray-500 mt-1">
                 9XXXXXXXX for Ethio Telecom or 7XXXXXXXX for Safaricom
               </p>
@@ -441,11 +673,66 @@ function CreateUserModal({ onClose, onSuccess }: { onClose: () => void; onSucces
                 required
                 minLength={6}
                 value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onChange={(e) => handleFieldChange('password', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.password ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="Min 6 characters"
               />
+              {errors.password && (
+                <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+              )}
             </div>
+
+            {/* Wing-Specific Fields */}
+            {wing === 'academic' && (
+              <AcademicWingForm
+                formData={formData}
+                errors={errors}
+                onFormDataChange={handleFieldChange}
+                colleges={colleges}
+                schools={schools}
+                departments={departments}
+                onAddCollege={(college) => {
+                  setColleges([...colleges, college]);
+                  handleFieldChange('college', college);
+                }}
+                onAddSchool={(school) => {
+                  if (formData.college) {
+                    const collegeSchools = schools[formData.college] || [];
+                    setSchools({
+                      ...schools,
+                      [formData.college]: [...(collegeSchools as string[]), school]
+                    });
+                    handleFieldChange('school', school);
+                  }
+                }}
+                onAddDepartment={(department) => {
+                  const key = formData.school || formData.college;
+                  if (key) {
+                    const depts = departments[key] || [];
+                    setDepartments({
+                      ...departments,
+                      [key]: [...depts, department]
+                    });
+                    handleFieldChange('department', department);
+                  }
+                }}
+              />
+            )}
+
+            {wing === 'administrative' && (
+              <AdministrativeWingForm
+                formData={formData}
+                errors={errors}
+                onFormDataChange={handleFieldChange}
+                adminUnits={adminUnits}
+                onAddUnit={(unit) => {
+                  setAdminUnits([...adminUnits, unit]);
+                  handleFieldChange('administrativeUnit', unit);
+                }}
+              />
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -466,19 +753,6 @@ function CreateUserModal({ onClose, onSuccess }: { onClose: () => void; onSucces
                   <option value="quality_assurance">Quality Assurance</option>
                   <option value="administrator">Administrator</option>
                 </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Work Unit
-                </label>
-                <input
-                  type="text"
-                  value={formData.workUnit}
-                  onChange={(e) => setFormData({ ...formData, workUnit: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g., IT Department, College of Engineering"
-                />
               </div>
             </div>
 
@@ -545,8 +819,8 @@ function EditUserModal({ user, onClose, onSuccess }: { user: User; onClose: () =
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-2xl w-full">
+    <div className="fixed inset-0 bg-black/20 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+      <div className="bg-white rounded-lg max-w-2xl w-full shadow-2xl">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <button

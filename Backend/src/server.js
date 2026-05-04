@@ -17,6 +17,7 @@ const requestRoutes = require('./routes/requests');
 const userRoutes = require('./routes/users');
 const auditLogRoutes = require('./routes/auditLogs');
 const dashboardRoutes = require('./routes/dashboard');
+const notificationRoutes = require('./routes/notifications');
 
 const app = express();
 
@@ -77,6 +78,7 @@ app.use('/api/assets', assetRoutes);
 app.use('/api/transfers', transferRoutes);
 app.use('/api/returns', returnRoutes);
 app.use('/api/requests', requestRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // API documentation route
 app.get('/api', (req, res) => {
@@ -170,6 +172,16 @@ const startServer = async () => {
       console.error('❌ Failed to connect to database. Please check your configuration.');
       console.error('💡 Tip: Run "npm run migrate" to set up the database.');
       process.exit(1);
+    }
+
+    // Run migrations
+    console.log('\n🔄 Running database migrations...');
+    try {
+      const migrateUserWings = require('./database/migrateUserWings');
+      await migrateUserWings();
+    } catch (migrationError) {
+      console.warn('⚠️  Migration warning:', migrationError.message);
+      // Don't exit on migration error, continue with server startup
     }
 
     // Start server
