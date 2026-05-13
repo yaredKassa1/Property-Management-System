@@ -51,6 +51,9 @@ module.exports = (sequelize, DataTypes) => {
         'approved',
         'rejected',
         'in_progress',
+        'procurement_in_progress',
+        'purchased',
+        'delivered',
         'completed',
         'cancelled'
       ),
@@ -175,6 +178,80 @@ module.exports = (sequelize, DataTypes) => {
     completionDate: {
       type: DataTypes.DATE,
       allowNull: true
+    },
+    // ── Procurement fields (purchase_department) ──────────────────────────
+    procurementStatus: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      comment: 'procurement_in_progress | purchased | delivered'
+    },
+    supplierName: {
+      type: DataTypes.STRING(200),
+      allowNull: true
+    },
+    supplierContact: {
+      type: DataTypes.STRING(200),
+      allowNull: true
+    },
+    quotationAmount: {
+      type: DataTypes.DECIMAL(15, 2),
+      allowNull: true
+    },
+    purchaseOrderNumber: {
+      type: DataTypes.STRING(100),
+      allowNull: true
+    },
+    procurementNotes: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    procurementDate: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    expectedDeliveryDate: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    actualDeliveryDate: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    processedBy: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: { model: 'users', key: 'id' },
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL',
+      comment: 'Purchase department user who processed this request'
+    },
+    // ── Procurement Workflow fields ──────────────────────────────────────
+    fulfillmentPath: {
+      type: DataTypes.ENUM('direct', 'procurement'),
+      allowNull: true,
+      comment: 'Fulfillment path: direct assignment from inventory or procurement workflow'
+    },
+    workflowId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: 'procurement_workflows',
+        key: 'id'
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL',
+      comment: 'Reference to procurement workflow if fulfillmentPath is procurement'
+    },
+    assignedItemId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: 'assets',
+        key: 'id'
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL',
+      comment: 'Reference to assigned asset (for direct fulfillment or after procurement)'
     }
   }, {
     tableName: 'requests',
@@ -197,6 +274,12 @@ module.exports = (sequelize, DataTypes) => {
       },
       {
         fields: ['requestDate']
+      },
+      {
+        fields: ['fulfillmentPath']
+      },
+      {
+        fields: ['workflowId']
       }
     ]
   });

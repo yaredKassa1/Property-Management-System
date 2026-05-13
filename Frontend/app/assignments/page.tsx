@@ -13,6 +13,7 @@ import { formatDateTime } from '@/lib/utils';
 interface Asset {
   id: string;
   assetId: string;
+  tagNumber?: string;
   name: string;
   category: string;
   status: string;
@@ -22,6 +23,8 @@ interface Asset {
   assignedTo?: string;
   assignedUser?: {
     id: string;
+    firstName?: string;
+    lastName?: string;
     fullName: string;
     email: string;
     workUnit: string;
@@ -55,6 +58,10 @@ export default function AssignmentsPage() {
   const [selectedUserId, setSelectedUserId] = useState('');
   const [assignmentNotes, setAssignmentNotes] = useState('');
   const [assignmentLoading, setAssignmentLoading] = useState(false);
+  // Location fields
+  const [locationArea, setLocationArea] = useState('');
+  const [locationBuilding, setLocationBuilding] = useState('');
+  const [locationFloor, setLocationFloor] = useState('');
 
   // Unassignment
   const [showUnassignModal, setShowUnassignModal] = useState(false);
@@ -97,20 +104,27 @@ export default function AssignmentsPage() {
 
     setAssignmentLoading(true);
     setError('');
-    
+
+    // Build location string from area/building/floor
+    const locationParts = [locationArea, locationBuilding, locationFloor].filter(Boolean);
+    const location = locationParts.length > 0 ? locationParts.join(', ') : 'Store';
+
     try {
       await api.updateAsset(selectedAsset.id, {
         assignedTo: selectedUserId,
-        status: 'assigned'
+        status: 'assigned',
+        location,
       });
-      
-      setSuccess(`Asset ${selectedAsset.assetId} successfully assigned!`);
+
+      setSuccess(`Asset ${selectedAsset.tagNumber || selectedAsset.assetId} successfully assigned!`);
       setShowAssignModal(false);
       setSelectedAsset(null);
       setSelectedUserId('');
       setAssignmentNotes('');
+      setLocationArea('');
+      setLocationBuilding('');
+      setLocationFloor('');
       fetchData();
-      
       setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
       setError(err.message || 'Failed to assign asset');
@@ -131,7 +145,7 @@ export default function AssignmentsPage() {
         status: 'available'
       });
       
-      setSuccess(`Asset ${assetToUnassign.assetId} successfully unassigned!`);
+      setSuccess(`Asset ${assetToUnassign.tagNumber || assetToUnassign.assetId} successfully unassigned!`);
       setShowUnassignModal(false);
       setAssetToUnassign(null);
       fetchData();
@@ -148,6 +162,9 @@ export default function AssignmentsPage() {
     setSelectedAsset(asset);
     setShowAssignModal(true);
     setError('');
+    setLocationArea('');
+    setLocationBuilding('');
+    setLocationFloor('');
   };
 
   const openUnassignModal = (asset: Asset) => {
@@ -345,8 +362,8 @@ export default function AssignmentsPage() {
                   {filteredAssets.map((asset) => (
                     <tr key={asset.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">{asset.assetId}</div>
-                        <div className="text-sm text-gray-500">{asset.name}</div>
+                        <div className="text-sm font-medium text-gray-900">{asset.name}</div>
+                        <div className="text-xs font-mono text-blue-600">{asset.tagNumber || asset.assetId}</div>
                       </td>
                       <td className="px-6 py-4">
                         <Badge variant={asset.category === 'fixed' ? 'info' : 'warning'}>
@@ -370,10 +387,12 @@ export default function AssignmentsPage() {
                         {asset.assignedUser ? (
                           <div>
                             <div className="text-sm font-medium text-gray-900">
-                              {asset.assignedUser.fullName}
+                              {asset.assignedUser.firstName && asset.assignedUser.lastName
+                                ? `${asset.assignedUser.firstName} ${asset.assignedUser.lastName}`
+                                : asset.assignedUser.fullName}
                             </div>
-                            <div className="text-sm text-gray-500">
-                              {asset.assignedUser.workUnit || 'No work unit'}
+                            <div className="text-xs text-gray-500">
+                              {asset.assignedUser.workUnit || 'No department'}
                             </div>
                           </div>
                         ) : (
@@ -428,8 +447,8 @@ export default function AssignmentsPage() {
                     <h3 className="font-semibold text-gray-900 mb-2">Asset Details</h3>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="text-gray-600">Asset ID:</span>
-                        <span className="ml-2 font-medium text-gray-900">{selectedAsset.assetId}</span>
+                        <span className="text-gray-600">Tag Number:</span>
+                        <span className="ml-2 font-mono font-bold text-blue-700">{selectedAsset.tagNumber || selectedAsset.assetId}</span>
                       </div>
                       <div>
                         <span className="text-gray-600">Name:</span>
@@ -440,8 +459,8 @@ export default function AssignmentsPage() {
                         <span className="ml-2 font-medium text-gray-900">{selectedAsset.category}</span>
                       </div>
                       <div>
-                        <span className="text-gray-600">Location:</span>
-                        <span className="ml-2 font-medium text-gray-900">{selectedAsset.location}</span>
+                        <span className="text-gray-600">Current Location:</span>
+                        <span className="ml-2 font-medium text-gray-900">{selectedAsset.location || 'Store'}</span>
                       </div>
                     </div>
                   </div>
@@ -470,6 +489,50 @@ export default function AssignmentsPage() {
                     </select>
                   </div>
 
+                  {/* Location */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Asset Location (where it will be placed)
+                    </label>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Area / Room</label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 text-sm"
+                          placeholder="e.g., Office 201"
+                          value={locationArea}
+                          onChange={e => setLocationArea(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Building</label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 text-sm"
+                          placeholder="e.g., Admin Block"
+                          value={locationBuilding}
+                          onChange={e => setLocationBuilding(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Floor</label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 text-sm"
+                          placeholder="e.g., 2nd Floor"
+                          value={locationFloor}
+                          onChange={e => setLocationFloor(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Preview: <span className="font-medium text-gray-600">
+                        {[locationArea, locationBuilding, locationFloor].filter(Boolean).join(', ') || 'Store'}
+                      </span>
+                    </p>
+                  </div>
+
                   {/* Assignment Notes */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -477,13 +540,12 @@ export default function AssignmentsPage() {
                     </label>
                     <textarea
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-400"
-                      rows={3}
+                      rows={2}
                       value={assignmentNotes}
                       onChange={(e) => setAssignmentNotes(e.target.value)}
                       placeholder="Enter any notes about this assignment..."
                     />
                   </div>
-
                   {error && (
                     <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                       {error}
@@ -531,8 +593,8 @@ export default function AssignmentsPage() {
                   
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2">
                     <div>
-                      <span className="text-sm text-gray-600">Asset ID:</span>
-                      <span className="ml-2 font-medium text-gray-900">{assetToUnassign.assetId}</span>
+                      <span className="text-sm text-gray-600">Tag Number:</span>
+                      <span className="ml-2 font-mono font-bold text-blue-700">{assetToUnassign.tagNumber || assetToUnassign.assetId}</span>
                     </div>
                     <div>
                       <span className="text-sm text-gray-600">Name:</span>

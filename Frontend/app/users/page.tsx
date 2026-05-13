@@ -24,18 +24,17 @@ export default function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
 
   useEffect(() => {
     const user = getUser();
     setCurrentUser(user);
-    
-    // Only administrators can access this page
     if (user?.role !== 'administrator') {
       setError('Access denied. Administrator privileges required.');
       setLoading(false);
       return;
     }
-    
     fetchUsers();
   }, []);
 
@@ -47,7 +46,6 @@ export default function UsersPage() {
       const data = Array.isArray(response) ? response : response.data || [];
       setUsers(data);
     } catch (err: any) {
-      console.error('Failed to fetch users:', err);
       setError('Failed to load users. Please try again.');
     } finally {
       setLoading(false);
@@ -55,238 +53,210 @@ export default function UsersPage() {
   };
 
   const handleDeactivate = async (user: User) => {
-    if (!confirm(`Deactivate user "${user.username}"? They will no longer be able to log in.`)) return;
-    
+    if (!confirm(`Deactivate "${user.username}"?`)) return;
     setActionLoading(true);
-    try {
-      await api.deleteUser(user.id, false);
-      alert('User deactivated successfully!');
-      fetchUsers();
-    } catch (err: any) {
-      alert('Failed to deactivate user: ' + err.message);
-    } finally {
-      setActionLoading(false);
-    }
+    try { await api.deleteUser(user.id, false); fetchUsers(); }
+    catch (err: any) { alert('Failed: ' + err.message); }
+    finally { setActionLoading(false); }
   };
 
   const handleResetPassword = async (user: User) => {
-    const newPassword = prompt(`Enter new password for user "${user.username}":`);
-    if (!newPassword) return;
-    
-    if (newPassword.length < 6) {
-      alert('Password must be at least 6 characters long');
-      return;
-    }
-    
+    const pw = prompt(`New password for "${user.username}" (min 6 chars):`);
+    if (!pw || pw.length < 6) { if (pw !== null) alert('Min 6 characters'); return; }
     setActionLoading(true);
-    try {
-      await api.resetUserPassword(user.id, newPassword);
-      alert('Password reset successfully!');
-    } catch (err: any) {
-      alert('Failed to reset password: ' + err.message);
-    } finally {
-      setActionLoading(false);
-    }
+    try { await api.resetUserPassword(user.id, pw); alert('Password reset!'); }
+    catch (err: any) { alert('Failed: ' + err.message); }
+    finally { setActionLoading(false); }
   };
 
-  const handleEdit = (user: User) => {
-    setSelectedUser(user);
-    setShowEditModal(true);
+  const handleEdit = (user: User) => { setSelectedUser(user); setShowEditModal(true); };
+
+  const ROLE_COLORS: Record<string, string> = {
+    administrator:    'bg-red-100 text-red-700 border-red-200',
+    vice_president:   'bg-purple-100 text-purple-700 border-purple-200',
+    property_officer: 'bg-blue-100 text-blue-700 border-blue-200',
+    approval_authority: 'bg-amber-100 text-amber-700 border-amber-200',
+    purchase_department: 'bg-teal-100 text-teal-700 border-teal-200',
+    quality_assurance: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+    staff:            'bg-gray-100 text-gray-700 border-gray-200',
   };
 
-  const getRoleBadgeColor = (role: UserRole): 'error' | 'warning' | 'info' | 'default' => {
-    const colors: Record<UserRole, 'error' | 'warning' | 'info' | 'default'> = {
-      administrator: 'error',
-      vice_president: 'warning',
-      property_officer: 'info',
-      approval_authority: 'info',
-      purchase_department: 'default',
-      quality_assurance: 'default',
-      staff: 'default',
-    };
-    return colors[role] || 'default';
+  const ROLE_ICONS: Record<string, string> = {
+    administrator: '🛡️', vice_president: '🎓', property_officer: '🗂️',
+    approval_authority: '🧾', purchase_department: '🛒', quality_assurance: '🧪', staff: '👤',
   };
 
-  if (loading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Loading users...</div>
-        </div>
-      </DashboardLayout>
-    );
-  }
+  const roles = ['all', 'administrator', 'vice_president', 'property_officer', 'approval_authority', 'purchase_department', 'quality_assurance', 'staff'];
 
-  if (error && currentUser?.role !== 'administrator') {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-red-600">{error}</div>
-        </div>
-      </DashboardLayout>
-    );
-  }
+  const filtered = users.filter(u => {
+    const matchRole = roleFilter === 'all' || u.role === roleFilter;
+    const q = search.toLowerCase();
+    const matchSearch = !q ||
+      `${u.firstName} ${u.lastName}`.toLowerCase().includes(q) ||
+      u.username.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q) ||
+      (u.workUnit || '').toLowerCase().includes(q);
+    return matchRole && matchSearch;
+  });
+
+  const stats = {
+    total: users.length,
+    active: users.filter(u => u.isActive).length,
+    inactive: users.filter(u => !u.isActive).length,
+    admins: users.filter(u => u.role === 'administrator').length,
+  };
+
+  if (loading) return (
+    <DashboardLayout>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
+      </div>
+    </DashboardLayout>
+  );
+
+  if (error && currentUser?.role !== 'administrator') return (
+    <DashboardLayout>
+      <div className="flex items-center justify-center h-64">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-xl">{error}</div>
+      </div>
+    </DashboardLayout>
+  );
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 pb-10">
+
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
-            <p className="text-gray-500 mt-1">Manage system users and access control</p>
+            <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+            <p className="text-gray-500 text-sm mt-1">Manage system users and access control</p>
           </div>
-          <Button onClick={() => setShowWingSelection(true)}>
-            Create User
-          </Button>
+          <button onClick={() => setShowWingSelection(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl font-semibold text-sm hover:bg-indigo-700 transition-colors shadow">
+            + Create User
+          </button>
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            {error}
+        {/* Stats */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[
+            { label: 'Total Users',  value: stats.total,    grad: 'from-slate-500 to-slate-700',   icon: '👥' },
+            { label: 'Active',       value: stats.active,   grad: 'from-green-400 to-green-600',   icon: '✅' },
+            { label: 'Inactive',     value: stats.inactive, grad: 'from-gray-400 to-gray-600',     icon: '⏸️' },
+            { label: 'Admins',       value: stats.admins,   grad: 'from-red-400 to-red-600',       icon: '🛡️' },
+          ].map(s => (
+            <div key={s.label} className={`bg-gradient-to-br ${s.grad} rounded-xl p-4 text-white shadow`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium opacity-80">{s.label}</p>
+                  <p className="text-3xl font-bold mt-1">{s.value}</p>
+                </div>
+                <span className="text-3xl opacity-80">{s.icon}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <input type="text" placeholder="Search by name, username, email, department..."
+            value={search} onChange={e => setSearch(e.target.value)}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white text-gray-900" />
+          <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+            {roles.map(r => (
+              <option key={r} value={r}>{r === 'all' ? 'All Roles' : `${ROLE_ICONS[r] || ''} ${r.replace(/_/g, ' ')}`}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* User Cards Grid */}
+        {filtered.length === 0 ? (
+          <div className="text-center py-20 text-gray-400">
+            <p className="text-4xl mb-3">👥</p>
+            <p className="font-medium">No users found</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map(u => {
+              const fullName = `${u.firstName}${u.middleName ? ' ' + u.middleName : ''} ${u.lastName}`;
+              const initials = `${u.firstName?.[0] || ''}${u.lastName?.[0] || ''}`.toUpperCase();
+              const roleColor = ROLE_COLORS[u.role] || ROLE_COLORS.staff;
+              const roleIcon = ROLE_ICONS[u.role] || '👤';
+              return (
+                <div key={u.id} className={`bg-white rounded-xl border shadow-sm hover:shadow-md transition-shadow overflow-hidden ${!u.isActive ? 'opacity-60' : ''}`}>
+                  {/* Card top accent */}
+                  <div className={`h-1.5 ${u.isActive ? 'bg-gradient-to-r from-indigo-500 to-purple-500' : 'bg-gray-300'}`} />
+                  <div className="p-5">
+                    <div className="flex items-start gap-4">
+                      {/* Avatar */}
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0 ${u.isActive ? 'bg-gradient-to-br from-indigo-500 to-purple-600' : 'bg-gray-400'}`}>
+                        {initials}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 truncate">{fullName}</p>
+                        <p className="text-xs text-gray-500">@{u.username}</p>
+                        <p className="text-xs text-gray-400 truncate mt-0.5">{u.email}</p>
+                      </div>
+                      {/* Status dot */}
+                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1 ${u.isActive ? 'bg-green-500' : 'bg-gray-400'}`} title={u.isActive ? 'Active' : 'Inactive'} />
+                    </div>
+
+                    <div className="mt-4 flex items-center gap-2 flex-wrap">
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${roleColor}`}>
+                        {roleIcon} {u.role.replace(/_/g, ' ')}
+                      </span>
+                      {u.workUnit && (
+                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full truncate max-w-[140px]">
+                          🏢 {u.workUnit}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-2">
+                      <button onClick={() => handleEdit(u)} disabled={actionLoading}
+                        className="flex-1 text-xs py-1.5 rounded-lg border border-indigo-300 text-indigo-600 hover:bg-indigo-50 font-medium transition-colors">
+                        ✏️ Edit
+                      </button>
+                      <button onClick={() => handleResetPassword(u)} disabled={actionLoading || !u.isActive}
+                        className="flex-1 text-xs py-1.5 rounded-lg border border-purple-300 text-purple-600 hover:bg-purple-50 font-medium transition-colors disabled:opacity-40">
+                        🔑 Reset PW
+                      </button>
+                      {u.isActive && u.id !== currentUser?.id && (
+                        <button onClick={() => handleDeactivate(u)} disabled={actionLoading}
+                          className="flex-1 text-xs py-1.5 rounded-lg border border-red-300 text-red-600 hover:bg-red-50 font-medium transition-colors">
+                          🚫 Deactivate
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
-
-        {/* Users Table */}
-        <Card>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    User
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Role
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Work Unit
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Last Login
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {users.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
-                      No users found.
-                    </td>
-                  </tr>
-                ) : (
-                  users.map((user) => {
-                    const fullName = `${user.firstName} ${user.middleName ? user.middleName + ' ' : ''}${user.lastName}`;
-                    return (
-                    <tr key={user.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{fullName}</div>
-                        <div className="text-sm text-gray-500">@{user.username}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {user.email}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant={getRoleBadgeColor(user.role)}>
-                          {user.role.replace('_', ' ')}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {user.workUnit || 'N/A'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant={user.isActive ? 'success' : 'default'}>
-                          {user.isActive ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {(user as any).lastLogin ? new Date((user as any).lastLogin).toLocaleDateString() : 'Never'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                        <button
-                          onClick={() => handleEdit(user)}
-                          disabled={actionLoading}
-                          className="text-blue-600 hover:text-blue-900 disabled:opacity-50"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleResetPassword(user)}
-                          disabled={actionLoading || !user.isActive}
-                          className="text-purple-600 hover:text-purple-900 disabled:opacity-50"
-                        >
-                          Reset Password
-                        </button>
-                        {user.isActive && user.id !== currentUser?.id && (
-                          <button
-                            onClick={() => handleDeactivate(user)}
-                            disabled={actionLoading}
-                            className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                          >
-                            Deactivate
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
 
         {/* Wing Selection Modal */}
         {showWingSelection && (
           <WingSelectionModal
-            onSelectWing={(wing) => {
-              setSelectedWing(wing);
-              setShowWingSelection(false);
-              setShowCreateModal(true);
-            }}
+            onSelectWing={(wing) => { setSelectedWing(wing); setShowWingSelection(false); setShowCreateModal(true); }}
             onClose={() => setShowWingSelection(false)}
           />
         )}
 
-        {/* Create User Modal */}
         {showCreateModal && selectedWing && (
-          <CreateUserModal
-            wing={selectedWing}
-            onClose={() => {
-              setShowCreateModal(false);
-              setSelectedWing(null);
-            }}
-            onSuccess={() => {
-              setShowCreateModal(false);
-              setSelectedWing(null);
-              fetchUsers();
-            }}
+          <CreateUserModal wing={selectedWing}
+            onClose={() => { setShowCreateModal(false); setSelectedWing(null); }}
+            onSuccess={() => { setShowCreateModal(false); setSelectedWing(null); fetchUsers(); }}
           />
         )}
 
-        {/* Edit User Modal */}
         {showEditModal && selectedUser && (
-          <EditUserModal
-            user={selectedUser}
-            onClose={() => {
-              setShowEditModal(false);
-              setSelectedUser(null);
-            }}
-            onSuccess={() => {
-              setShowEditModal(false);
-              setSelectedUser(null);
-              fetchUsers();
-            }}
+          <EditUserModal user={selectedUser}
+            onClose={() => { setShowEditModal(false); setSelectedUser(null); }}
+            onSuccess={() => { setShowEditModal(false); setSelectedUser(null); fetchUsers(); }}
           />
         )}
       </div>

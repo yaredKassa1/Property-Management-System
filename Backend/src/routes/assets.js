@@ -70,9 +70,8 @@ router.post(
   requirePermission('manage_assets'),
   [
     body('assetId')
+      .optional()
       .trim()
-      .notEmpty()
-      .withMessage('Asset ID is required')
       .isLength({ max: 50 })
       .withMessage('Asset ID must not exceed 50 characters'),
     body('name')
@@ -91,9 +90,10 @@ router.post(
       .isDate()
       .withMessage('Purchase date must be a valid date'),
     body('location')
+      .optional()
       .trim()
-      .notEmpty()
-      .withMessage('Location is required'),
+      .isLength({ max: 200 })
+      .withMessage('Location must not exceed 200 characters'),
     body('status')
       .optional()
       .isIn(['available', 'assigned', 'in_transfer', 'under_maintenance', 'disposed'])

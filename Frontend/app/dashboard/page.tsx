@@ -868,91 +868,173 @@ export default function DashboardPage() {
           </div>
         ) : userRole === 'administrator' ? (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <Card title="User Management Overview" className="border border-gray-200">
-                <div className="space-y-2 text-sm text-gray-600">
-                  <p>Total Users: <span className="font-semibold text-gray-900">{userStats?.totalUsers ?? '-'}</span></p>
-                  <p>Active Users: <span className="font-semibold text-green-600">{userStats?.activeUsers ?? '-'}</span></p>
-                  <p>Inactive Users: <span className="font-semibold text-gray-500">{userStats?.inactiveUsers ?? '-'}</span></p>
-                  <p className="pt-2 text-xs text-gray-400">Recently updated accounts tracked in audit logs.</p>
-                </div>
-              </Card>
 
-              <Card title="Role & Permission Summary" className="border border-gray-200">
-                <div className="space-y-2 text-sm text-gray-600">
-                  {(userStats?.roleBreakdown || []).map((role: any) => (
-                    <div key={role.role} className="flex justify-between">
-                      <span className="capitalize">{role.role.replace('_', ' ')}</span>
-                      <span className="font-semibold text-gray-900">{role.count}</span>
+            {/* Top KPI row */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { label: 'Total Users',    value: userStats?.totalUsers   ?? 0, icon: '👥', grad: 'from-indigo-500 to-indigo-700',  sub: 'Registered accounts' },
+                { label: 'Active Users',   value: userStats?.activeUsers  ?? 0, icon: '✅', grad: 'from-green-500 to-green-700',    sub: 'Can log in now' },
+                { label: 'Failed Logins',  value: auditStats?.failedLogins ?? 0, icon: '🔐', grad: 'from-red-500 to-red-700',       sub: 'Last 30 days' },
+                { label: 'Audit Events',   value: auditStats?.totalLogs   ?? 0, icon: '📋', grad: 'from-slate-500 to-slate-700',    sub: 'Total log entries' },
+              ].map(s => (
+                <div key={s.label} className={`bg-gradient-to-br ${s.grad} rounded-2xl p-5 text-white shadow-lg`}>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-xs font-medium opacity-75 uppercase tracking-wider">{s.label}</p>
+                      <p className="text-4xl font-bold mt-2">{s.value.toLocaleString()}</p>
+                      <p className="text-xs opacity-60 mt-1">{s.sub}</p>
                     </div>
-                  ))}
-                  <p className="pt-2 text-xs text-gray-400">Monitor roles and permissions assignments.</p>
+                    <span className="text-3xl opacity-80">{s.icon}</span>
+                  </div>
                 </div>
-              </Card>
-
-              <Card title="Authentication & Security" className="border border-gray-200">
-                <div className="space-y-2 text-sm text-gray-600">
-                  <p>Total Logs: <span className="font-semibold text-gray-900">{auditStats?.totalLogs ?? '-'}</span></p>
-                  <p>Failed Attempts: <span className="font-semibold text-red-600">{auditStats?.failedLogins ?? '-'}</span></p>
-                  <p>Errors: <span className="font-semibold text-orange-600">{auditStats?.errorActions ?? '-'}</span></p>
-                  <p className="pt-2 text-xs text-gray-400">Login attempts and password resets tracked.</p>
-                </div>
-              </Card>
+              ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card title="System Activity Monitoring" className="border border-gray-200">
-                <div className="space-y-3 text-sm text-gray-600">
-                  {(auditStats?.topActions || []).slice(0, 5).map((action: any) => (
-                    <div key={action.action} className="flex justify-between">
-                      <span>{action.action.replace(/_/g, ' ')}</span>
-                      <span className="font-semibold text-gray-900">{action.count}</span>
+            {/* Middle row: Role breakdown + Security + Quick actions */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+              {/* Role breakdown */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Users by Role</p>
+                <div className="space-y-3">
+                  {(userStats?.roleBreakdown || []).length === 0 ? (
+                    <p className="text-sm text-gray-400 text-center py-4">No data</p>
+                  ) : (
+                    (userStats?.roleBreakdown || []).map((r: any) => {
+                      const pct = userStats?.totalUsers ? Math.round((r.count / userStats.totalUsers) * 100) : 0;
+                      const colors: Record<string, string> = {
+                        administrator: 'bg-red-500', vice_president: 'bg-purple-500',
+                        property_officer: 'bg-blue-500', approval_authority: 'bg-amber-500',
+                        purchase_department: 'bg-teal-500', quality_assurance: 'bg-indigo-500', staff: 'bg-gray-400',
+                      };
+                      return (
+                        <div key={r.role}>
+                          <div className="flex justify-between text-xs mb-1">
+                            <span className="text-gray-600 capitalize">{r.role.replace(/_/g, ' ')}</span>
+                            <span className="font-semibold text-gray-900">{r.count}</span>
+                          </div>
+                          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${colors[r.role] || 'bg-gray-400'}`} style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* Security panel */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Security Overview</p>
+                <div className="space-y-3">
+                  {[
+                    { label: 'Failed Login Attempts', value: auditStats?.failedLogins ?? 0,  color: 'text-red-600',    bg: 'bg-red-50',    icon: '🔴' },
+                    { label: 'Failed Actions',         value: auditStats?.failedActions ?? 0, color: 'text-orange-600', bg: 'bg-orange-50', icon: '🟠' },
+                    { label: 'System Errors',          value: auditStats?.errorActions ?? 0,  color: 'text-yellow-600', bg: 'bg-yellow-50', icon: '🟡' },
+                  ].map(item => (
+                    <div key={item.label} className={`flex items-center justify-between p-3 rounded-xl ${item.bg}`}>
+                      <div className="flex items-center gap-2">
+                        <span>{item.icon}</span>
+                        <span className="text-sm text-gray-700">{item.label}</span>
+                      </div>
+                      <span className={`text-xl font-bold ${item.color}`}>{item.value}</span>
                     </div>
                   ))}
                 </div>
-              </Card>
+                <Link href="/audit-logs" className="mt-4 flex items-center justify-center gap-1 text-xs text-indigo-600 hover:underline font-medium">
+                  View full audit log →
+                </Link>
+              </div>
 
-              <Card title="Notifications & Alerts" className="border border-gray-200">
-                <div className="space-y-2 text-sm text-gray-600">
-                  <p>Security Alerts: <span className="font-semibold text-red-600">{auditStats?.failedActions ?? 0}</span></p>
-                  <p>System Warnings: <span className="font-semibold text-orange-600">{auditStats?.errorActions ?? 0}</span></p>
-                  <p>Pending Admin Actions: <span className="font-semibold text-blue-600">{auditStats?.failedActions ?? 0}</span></p>
-                  <p className="pt-2 text-xs text-gray-400">Review audit logs for full details.</p>
-                </div>
-              </Card>
-
-              <Card title="Quick Actions" className="border border-gray-200">
-                <div className="space-y-4">
-                  {roleAccess.quickActions.map((action) => (
-                    <Link
-                      key={action.label}
-                      href={action.href}
-                      className="block rounded-lg border border-gray-200 p-3 hover:border-blue-400 hover:bg-blue-50 transition-colors"
-                    >
-                      <p className="text-sm font-semibold text-gray-900">{action.label}</p>
-                      <p className="text-xs text-gray-500 mt-1">{action.description}</p>
+              {/* Quick actions */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Quick Actions</p>
+                <div className="space-y-3">
+                  {[
+                    { label: 'Manage Users',   href: '/users',      icon: '👥', desc: 'Create, edit, deactivate accounts' },
+                    { label: 'Audit Logs',     href: '/audit-logs', icon: '📋', desc: 'Review system activity' },
+                    { label: 'Reset Password', href: '/users',      icon: '🔑', desc: 'Manage user credentials' },
+                  ].map(a => (
+                    <Link key={a.label} href={a.href}
+                      className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-indigo-300 hover:bg-indigo-50 transition-all group">
+                      <span className="text-2xl">{a.icon}</span>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900 group-hover:text-indigo-700">{a.label}</p>
+                        <p className="text-xs text-gray-400">{a.desc}</p>
+                      </div>
                     </Link>
                   ))}
                 </div>
-              </Card>
+              </div>
             </div>
 
-            <Card title="Recent Security Events" className="border border-gray-200">
-              {securityEvents.length > 0 ? (
-                <div className="divide-y divide-gray-100">
-                  {securityEvents.map((event) => (
-                    <div key={event.id} className="py-3 px-4 hover:bg-gray-50">
-                      <p className="text-sm font-medium text-gray-900">{event.action?.replace(/_/g, ' ')}</p>
-                      <p className="text-xs text-gray-500">
-                        {event.user?.fullName || 'System'} • {formatDateTime(event.timestamp)}
-                      </p>
-                    </div>
-                  ))}
+            {/* Top actions + Recent security events */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+              {/* Top system actions */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Top System Actions</p>
+                {(auditStats?.topActions || []).length === 0 ? (
+                  <p className="text-sm text-gray-400 text-center py-6">No activity data</p>
+                ) : (
+                  <div className="space-y-2">
+                    {(auditStats?.topActions || []).slice(0, 6).map((a: any, i: number) => (
+                      <div key={a.action} className="flex items-center gap-3">
+                        <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between text-xs mb-1">
+                            <span className="text-gray-700 truncate capitalize">{a.action.replace(/_/g, ' ')}</span>
+                            <span className="font-semibold text-gray-900 ml-2">{a.count}</span>
+                          </div>
+                          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-indigo-400 rounded-full"
+                              style={{ width: `${Math.min(100, (a.count / ((auditStats?.topActions?.[0]?.count) || 1)) * 100)}%` }} />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Recent security events */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Recent Security Events</p>
+                  <Link href="/audit-logs" className="text-xs text-indigo-600 hover:underline">View all</Link>
                 </div>
-              ) : (
-                <div className="py-8 text-center text-gray-500">No recent security events</div>
-              )}
-            </Card>
+                {securityEvents.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <p className="text-3xl mb-2">🛡️</p>
+                    <p className="text-sm">No recent security events</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {securityEvents.slice(0, 6).map((event: any) => (
+                      <div key={event.id} className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-gray-50 transition-colors">
+                        <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                          event.status === 'failure' ? 'bg-red-500' :
+                          event.status === 'error'   ? 'bg-orange-500' : 'bg-green-500'
+                        }`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-800 truncate capitalize">
+                            {event.action?.replace(/_/g, ' ')}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {event.user?.fullName || 'System'} · {formatDateTime(event.timestamp)}
+                          </p>
+                        </div>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
+                          event.status === 'failure' ? 'bg-red-100 text-red-700' :
+                          event.status === 'error'   ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'
+                        }`}>{event.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
           </div>
         ) : (
           <>

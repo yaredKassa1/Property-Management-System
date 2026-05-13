@@ -19,9 +19,11 @@ export function Sidebar({ user }: SidebarProps) {
     { name: t('assets'), href: '/assets', icon: '📦', roles: ['property_officer', 'approval_authority', 'purchase_department', 'quality_assurance', 'staff', 'vice_president'] },
     { name: t('assignments'), href: '/assignments', icon: '👤', roles: ['property_officer'] },
     { name: t('transfers'), href: '/transfers', icon: '🔄', roles: ['property_officer', 'staff', 'vice_president', 'approval_authority', 'purchase_department', 'quality_assurance'] },
-    { name: t('transfer_dashboard'), href: '/transfers/dashboard', icon: '📋', roles: ['property_officer'] },
     { name: t('returns'), href: '/returns', icon: '↩️', roles: ['property_officer', 'staff', 'quality_assurance'] },
     { name: t('requests'), href: '/requests', icon: '📝', roles: ['property_officer', 'staff', 'approval_authority', 'purchase_department', 'vice_president'] },
+    { name: 'Procurement', href: '/procurement', icon: '🛒', roles: ['purchase_department', 'administrator'] },
+    { name: 'VP Approvals', href: '/vp-approvals', icon: '✅', roles: ['vice_president', 'administrator'] },
+    { name: 'QA Inspections', href: '/qa-inspections', icon: '🔍', roles: ['quality_assurance', 'property_officer', 'administrator'] },
     { name: t('reports'), href: '/reports', icon: '📈', roles: ['property_officer', 'vice_president', 'approval_authority'] },
   ];
 

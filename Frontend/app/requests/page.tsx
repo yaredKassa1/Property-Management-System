@@ -16,6 +16,8 @@ export default function RequestsPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
+  const [showWorkflowModal, setShowWorkflowModal] = useState(false);
+  const [workflowRequest, setWorkflowRequest] = useState<Request | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
@@ -56,7 +58,6 @@ export default function RequestsPage() {
     const notes = prompt('Enter approval notes (optional):');
     const permittedAmountStr = prompt('Enter permitted amount (optional):');
     const permittedAmount = permittedAmountStr ? parseInt(permittedAmountStr) : undefined;
-    
     setActionLoading(true);
     try {
       await api.approveRequest(request.id, notes || undefined, permittedAmount, 'Digital Signature');
@@ -72,7 +73,6 @@ export default function RequestsPage() {
   const handleReject = async (request: Request) => {
     const reason = prompt('Please enter rejection reason:');
     if (!reason) return;
-    
     setActionLoading(true);
     try {
       await api.rejectRequest(request.id, reason);
@@ -87,7 +87,6 @@ export default function RequestsPage() {
 
   const handleComplete = async (request: Request) => {
     if (!confirm('Mark this request as completed?')) return;
-    
     setActionLoading(true);
     try {
       await api.completeRequest(request.id, 'Digital Signature');
@@ -102,7 +101,6 @@ export default function RequestsPage() {
 
   const handleCancel = async (request: Request) => {
     if (!confirm('Are you sure you want to cancel this request?')) return;
-    
     setActionLoading(true);
     try {
       await api.cancelRequest(request.id);
@@ -115,8 +113,84 @@ export default function RequestsPage() {
     }
   };
 
-  const getStatusColor = (status: RequestStatus): 'info' | 'success' | 'warning' | 'danger' | 'default' => {
-    const colors: Record<RequestStatus, 'info' | 'success' | 'warning' | 'danger' | 'default'> = {
+  // Workflow actions
+  const handleWorkflowApprove = async (workflowId: string, decision: 'approve' | 'reject', permittedAmount?: number) => {
+    const comments = prompt(`Enter comments for ${decision} (optional):`);
+    setActionLoading(true);
+    try {
+      await api.approveWorkflow(workflowId, decision, comments || undefined, permittedAmount);
+      alert(`Workflow ${decision}d successfully!`);
+      fetchRequests();
+      setShowWorkflowModal(false);
+    } catch (err: any) {
+      alert('Failed: ' + err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handlePropertyOfficerComplete = async (workflowId: string) => {
+    if (!confirm('Complete this request and notify Purchase Department?')) return;
+    setActionLoading(true);
+    try {
+      await api.propertyOfficerComplete(workflowId);
+      alert('Purchase Department notified!');
+      fetchRequests();
+      setShowWorkflowModal(false);
+    } catch (err: any) {
+      alert('Failed: ' + err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleMarkProcured = async (workflowId: string) => {
+    const supplier = prompt('Enter supplier name (optional):');
+    setActionLoading(true);
+    try {
+      await api.markProcured(workflowId, { supplier });
+      alert('Item marked as procured. QA notified!');
+      fetchRequests();
+      setShowWorkflowModal(false);
+    } catch (err: any) {
+      alert('Failed: ' + err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleQAInspect = async (workflowId: string, decision: 'approve' | 'reject') => {
+    const comments = prompt(`Enter QA ${decision} comments:`);
+    setActionLoading(true);
+    try {
+      await api.qaInspect(workflowId, decision, comments || undefined);
+      alert(`QA inspection ${decision}d!`);
+      fetchRequests();
+      setShowWorkflowModal(false);
+    } catch (err: any) {
+      alert('Failed: ' + err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCollectItem = async (requestId: string) => {
+    if (!confirm('Confirm item collection?')) return;
+    setActionLoading(true);
+    try {
+      await api.collectItem(requestId);
+      alert('Item collected and assigned to you!');
+      fetchRequests();
+      setShowWorkflowModal(false);
+    } catch (err: any) {
+      alert('Failed: ' + err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const getStatusColor = (status: string): 'info' | 'success' | 'warning' | 'danger' | 'default' => {
+    const colors: Record<string, 'info' | 'success' | 'warning' | 'danger' | 'default'> = {
       pending: 'warning',
       under_review: 'info',
       approved: 'success',
@@ -124,51 +198,74 @@ export default function RequestsPage() {
       in_progress: 'info',
       completed: 'success',
       cancelled: 'default',
+      item_ready: 'success',
     };
     return colors[status] || 'default';
   };
 
   const getPriorityColor = (priority: RequestPriority): 'info' | 'success' | 'warning' | 'danger' | 'default' => {
     const colors: Record<RequestPriority, 'info' | 'success' | 'warning' | 'danger' | 'default'> = {
-      low: 'default',
-      medium: 'info',
-      high: 'warning',
-      urgent: 'danger',
+      low: 'default', medium: 'info', high: 'warning', urgent: 'danger',
     };
     return colors[priority] || 'default';
   };
 
-  const canReview = (request: Request): boolean => {
-    return (
-      (currentUser?.role === 'approval_authority' ||
-       currentUser?.role === 'vice_president') &&
-      request.status === 'pending'
-    );
+  const canReview = (r: Request) =>
+    (currentUser?.role === 'approval_authority' || currentUser?.role === 'vice_president') && r.status === 'pending';
+
+  const canApproveOrReject = (r: Request) =>
+    (currentUser?.role === 'approval_authority' || currentUser?.role === 'vice_president' || currentUser?.role === 'administrator') &&
+    (r.status === 'in_progress' || r.status === 'pending' || r.status === 'under_review');
+
+  const canComplete = (r: Request) =>
+    (currentUser?.role === 'property_officer' || currentUser?.role === 'purchase_department' || currentUser?.role === 'administrator') &&
+    r.status === 'approved';
+
+  const canCancel = (r: Request) =>
+    currentUser?.id === r.requestedBy && (r.status === 'pending' || r.status === 'under_review');
+
+  // Determine if a workflow action is available for this user/state
+  const getWorkflowAction = (r: any): string | null => {
+    const wf = r.procurementWorkflow;
+    if (!wf) return null;
+    const state = wf.currentState;
+    const role = currentUser?.role;
+    const isExisting = wf.workflowType === 'existing_asset';
+
+    if (state === 'pending_approval' && (role === 'approval_authority' || role === 'administrator')) return 'approve_aa';
+    // VP step only for new_item
+    if (!isExisting && state === 'pending_vp_approval' && (role === 'vice_president' || role === 'administrator')) return 'approve_vp';
+    if (state === 'pending_property_officer' && (role === 'property_officer' || role === 'administrator')) return 'property_officer';
+    // Purchase/QA steps only for new_item
+    if (!isExisting && state === 'purchase_notification_sent' && (role === 'purchase_department' || role === 'administrator')) return 'mark_procured';
+    if (!isExisting && state === 'pending_qa_inspection' && (role === 'quality_assurance' || role === 'administrator')) return 'qa_inspect';
+    if (!isExisting && state === 'item_ready' && currentUser?.id === r.requestedBy) return 'collect';
+    return null;
   };
 
-  const canApproveOrReject = (request: Request): boolean => {
-    return (
-      (currentUser?.role === 'approval_authority' ||
-       currentUser?.role === 'vice_president' ||
-       currentUser?.role === 'administrator') &&
-      (request.status === 'in_progress' || request.status === 'pending' || request.status === 'under_review')
-    );
-  };
-
-  const canComplete = (request: Request): boolean => {
-    return (
-      (currentUser?.role === 'property_officer' ||
-       currentUser?.role === 'purchase_department' ||
-       currentUser?.role === 'administrator') &&
-      request.status === 'approved'
-    );
-  };
-
-  const canCancel = (request: Request): boolean => {
-    return (
-      currentUser?.id === request.requestedBy &&
-      (request.status === 'pending' || request.status === 'under_review')
-    );
+  const getWorkflowStateLabel = (state: string, workflowType?: string) => {
+    if (workflowType === 'existing_asset') {
+      const labels: Record<string, string> = {
+        pending_approval: 'Awaiting Approval',
+        pending_property_officer: 'Awaiting Property Officer',
+        completed: 'Completed',
+        rejected: 'Rejected',
+      };
+      return labels[state] || state;
+    }
+    const labels: Record<string, string> = {
+      pending_approval: 'Awaiting Approval',
+      pending_vp_approval: 'Awaiting VP Approval',
+      pending_property_officer: 'Awaiting Property Officer',
+      purchase_notification_sent: 'Purchase Dept. Notified',
+      pending_qa_inspection: 'Awaiting QA',
+      qa_approved: 'QA Approved',
+      qa_rejected: 'QA Rejected',
+      item_ready: 'Ready for Collection',
+      completed: 'Completed',
+      rejected: 'Rejected',
+    };
+    return labels[state] || state;
   };
 
   if (loading) {
@@ -184,192 +281,139 @@ export default function RequestsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Requests</h1>
-            <p className="text-gray-500 mt-1">Manage withdrawal, purchase, and other requests</p>
+            <p className="text-gray-500 mt-1">Manage withdrawal, purchase, and procurement requests</p>
           </div>
-          <Button onClick={() => setShowCreateModal(true)}>
-            Create Request
-          </Button>
+          <Button onClick={() => setShowCreateModal(true)}>Create Request</Button>
         </div>
 
-        {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            {error}
-          </div>
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">{error}</div>
         )}
 
-        {/* Requests List */}
         <Card>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Item
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Requested By
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Purpose
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Priority
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
+                  {['Type', 'Item', 'Requested By', 'Purpose', 'Priority', 'Status', 'Workflow', 'Date', 'Actions'].map(h => (
+                    <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {requests.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
                       No requests found. Click "Create Request" to submit a new request.
                     </td>
                   </tr>
                 ) : (
-                  requests.map((request) => (
-                    <tr key={request.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant="info">
-                          {request.requestType}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">
-                          {request.itemName}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Qty: {request.quantity}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {request.requester ? `${request.requester.firstName} ${request.requester.lastName}` : 'N/A'}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {request.workUnit}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 max-w-xs truncate">
-                          {request.purpose}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant={getPriorityColor(request.priority)}>
-                          {request.priority}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant={getStatusColor(request.status)}>
-                          {request.status.replace('_', ' ')}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(request.requestDate).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                        {canReview(request) && (
-                          <button
-                            onClick={() => handleReview(request)}
-                            disabled={actionLoading}
-                            className="text-purple-600 hover:text-purple-900 disabled:opacity-50"
-                          >
-                            Review
-                          </button>
-                        )}
-                        {canApproveOrReject(request) && (
-                          <>
+                  requests.map((request: any) => {
+                    const wfAction = getWorkflowAction(request);
+                    return (
+                      <tr key={request.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge variant="info">{request.requestType}</Badge>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-medium text-gray-900">{request.itemName}</div>
+                          <div className="text-sm text-gray-500">Qty: {request.quantity}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {request.requester ? `${request.requester.firstName} ${request.requester.lastName}` : 'N/A'}
+                          </div>
+                          <div className="text-sm text-gray-500">{request.workUnit}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900 max-w-xs truncate">{request.purpose}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge variant={getPriorityColor(request.priority)}>{request.priority}</Badge>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge variant={getStatusColor(request.status)}>
+                            {request.status.replace(/_/g, ' ')}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">
+                          {request.procurementWorkflow ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded bg-blue-50 text-blue-700">
+                              {getWorkflowStateLabel(request.procurementWorkflow.currentState, request.procurementWorkflow.workflowType)}
+                            </span>
+                          ) : request.fulfillmentPath === 'direct' ? (
+                            <span className="text-green-600">Direct</span>
+                          ) : '—'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(request.requestDate).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                          {canReview(request) && (
+                            <button onClick={() => handleReview(request)} disabled={actionLoading} className="text-purple-600 hover:text-purple-900 disabled:opacity-50">Review</button>
+                          )}
+                          {canApproveOrReject(request) && !request.procurementWorkflow && (
+                            <>
+                              <button onClick={() => handleApprove(request)} disabled={actionLoading} className="text-green-600 hover:text-green-900 disabled:opacity-50">Approve</button>
+                              <button onClick={() => handleReject(request)} disabled={actionLoading} className="text-red-600 hover:text-red-900 disabled:opacity-50">Reject</button>
+                            </>
+                          )}
+                          {canComplete(request) && !request.procurementWorkflow && (
+                            <button onClick={() => handleComplete(request)} disabled={actionLoading} className="text-blue-600 hover:text-blue-900 disabled:opacity-50">Complete</button>
+                          )}
+                          {/* Workflow actions */}
+                          {wfAction && (
                             <button
-                              onClick={() => handleApprove(request)}
-                              disabled={actionLoading}
-                              className="text-green-600 hover:text-green-900 disabled:opacity-50"
+                              onClick={() => { setWorkflowRequest(request); setShowWorkflowModal(true); }}
+                              className="text-indigo-600 hover:text-indigo-900 font-semibold"
                             >
-                              Approve
+                              Action
                             </button>
-                            <button
-                              onClick={() => handleReject(request)}
-                              disabled={actionLoading}
-                              className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                            >
-                              Reject
-                            </button>
-                          </>
-                        )}
-                        {canComplete(request) && (
-                          <button
-                            onClick={() => handleComplete(request)}
-                            disabled={actionLoading}
-                            className="text-blue-600 hover:text-blue-900 disabled:opacity-50"
-                          >
-                            Complete
-                          </button>
-                        )}
-                        <button
-                          onClick={() => window.open(`/requests/${request.id}/print`, '_blank')}
-                          className="text-indigo-600 hover:text-indigo-900"
-                          title="Print"
-                        >
-                          Print
-                        </button>
-                        {canCancel(request) && (
-                          <button
-                            onClick={() => handleCancel(request)}
-                            disabled={actionLoading}
-                            className="text-gray-600 hover:text-gray-900 disabled:opacity-50"
-                          >
-                            Cancel
-                          </button>
-                        )}
-                        {!canReview(request) && !canApproveOrReject(request) && !canComplete(request) && !canCancel(request) && (
-                          <button
-                            onClick={() => setSelectedRequest(request)}
-                            className="text-blue-600 hover:text-blue-900"
-                          >
-                            View
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))
+                          )}
+                          <button onClick={() => window.open(`/requests/${request.id}/print`, '_blank')} className="text-indigo-600 hover:text-indigo-900">Print</button>
+                          {canCancel(request) && (
+                            <button onClick={() => handleCancel(request)} disabled={actionLoading} className="text-gray-600 hover:text-gray-900 disabled:opacity-50">Cancel</button>
+                          )}
+                          {!canReview(request) && !canApproveOrReject(request) && !canComplete(request) && !canCancel(request) && !wfAction && (
+                            <button onClick={() => setSelectedRequest(request)} className="text-blue-600 hover:text-blue-900">View</button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
           </div>
         </Card>
 
-        {/* Create Request Modal */}
         {showCreateModal && (
           <CreateRequestModal
             onClose={() => setShowCreateModal(false)}
-            onSuccess={() => {
-              setShowCreateModal(false);
-              fetchRequests();
-            }}
+            onSuccess={() => { setShowCreateModal(false); fetchRequests(); }}
             currentUser={currentUser}
           />
         )}
 
-        {/* View Request Modal */}
         {selectedRequest && (
-          <ViewRequestModal
-            request={selectedRequest}
-            onClose={() => setSelectedRequest(null)}
+          <ViewRequestModal request={selectedRequest} onClose={() => setSelectedRequest(null)} />
+        )}
+
+        {showWorkflowModal && workflowRequest && (
+          <WorkflowActionModal
+            request={workflowRequest as any}
+            currentUser={currentUser}
+            actionLoading={actionLoading}
+            onClose={() => { setShowWorkflowModal(false); setWorkflowRequest(null); }}
+            onApproveAA={(wfId, d) => handleWorkflowApprove(wfId, d)}
+            onApproveVP={(wfId, d) => handleWorkflowApprove(wfId, d)}
+            onPropertyOfficerComplete={handlePropertyOfficerComplete}
+            onMarkProcured={handleMarkProcured}
+            onQAInspect={handleQAInspect}
+            onCollect={handleCollectItem}
           />
         )}
       </div>
@@ -422,13 +466,16 @@ function CreateRequestModal({ onClose, onSuccess, currentUser }: {
 
   const fetchAssets = async () => {
     try {
-      const data: any = await api.getAssets();
+      // Request available assets specifically (for staff users to see available assets in request form)
+      const data: any = await api.getAssets({ status: 'available', includeAvailable: 'true' });
       const allAssets = Array.isArray(data) ? data : data.data || [];
-      // Filter out assets that are already assigned to other users
+      // For withdrawal requests: show available assets (not assigned to anyone)
+      // For purchase requests: no asset selection needed
       const availableAssets = allAssets.filter((asset: any) => 
-        asset.status === 'available' || 
-        (asset.status === 'assigned' && asset.assignedTo === currentUser?.id)
+        asset.status === 'available' && !asset.assignedTo
       );
+      console.log('All assets:', allAssets);
+      console.log('Available assets for withdrawal:', availableAssets);
       setAssets(availableAssets);
     } catch (err) {
       console.error('Failed to fetch assets:', err);
@@ -491,12 +538,17 @@ function CreateRequestModal({ onClose, onSuccess, currentUser }: {
     const newItems = [...formData.items];
     newItems[index] = { ...newItems[index], [field]: value };
     
-    // Auto-fill asset name and measurement when asset is selected
-    if (field === 'assetId' && value) {
-      const selectedAsset = assets.find(a => a.id.toString() === value);
-      if (selectedAsset) {
-        newItems[index].assetName = selectedAsset.name;
-        newItems[index].measurement = selectedAsset.unit || 'pcs';
+    // When an existing asset is selected, auto-fill name and clear any typed name
+    if (field === 'assetId') {
+      if (value) {
+        const selectedAsset = assets.find(a => a.id.toString() === value);
+        if (selectedAsset) {
+          newItems[index].assetName = selectedAsset.name;
+          newItems[index].measurement = selectedAsset.unit || 'pcs';
+        }
+      } else {
+        // Cleared the dropdown — reset name so user can type
+        newItems[index].assetName = '';
       }
     }
     
@@ -509,18 +561,25 @@ function CreateRequestModal({ onClose, onSuccess, currentUser }: {
     setLoading(true);
 
     try {
-      // For withdrawal requests with a single asset, include the assetId
-      // This is required for proper asset assignment when completing the request
-      const firstAssetId = formData.items.length > 0 && formData.items[0].assetId 
-        ? formData.items[0].assetId 
-        : undefined;
+      const firstItem = formData.items[0];
+      const hasExistingAsset = formData.items.some(i => i.assetId);
+      const hasNewItem = formData.items.some(i => !i.assetId && i.assetName.trim());
 
-      // Submit the request with the items
+      if (!hasExistingAsset && !hasNewItem) {
+        alert('Please select an existing asset or type a new item name.');
+        setLoading(false);
+        return;
+      }
+
+      const itemNames = formData.items.map(i =>
+        i.assetId ? i.assetName : i.assetName.trim()
+      ).filter(Boolean).join(', ');
+
       const dataToSend = {
-        requestType: formData.requestType,
-        assetId: firstAssetId, // Include the first asset ID for assignment tracking
-        itemName: formData.items.map(item => item.assetName).join(', '),
-        quantity: formData.items.reduce((sum, item) => sum + item.requestedAmount, 0),
+        requestType: hasExistingAsset && !hasNewItem ? 'withdrawal' : 'purchase',
+        assetId: hasExistingAsset ? firstItem.assetId || undefined : undefined,
+        itemName: itemNames || firstItem.assetName,
+        quantity: formData.items.reduce((sum, i) => sum + i.requestedAmount, 0),
         purpose: formData.reason,
         priority: 'medium' as RequestPriority,
         workUnit: currentUser?.workUnit || '',
@@ -529,9 +588,13 @@ function CreateRequestModal({ onClose, onSuccess, currentUser }: {
         specifications: JSON.stringify(formData.items),
         requesterSignature: 'Digital Signature'
       };
-      
+
       await api.createRequest(dataToSend);
-      alert('Asset withdrawal request created successfully!');
+      alert(
+        hasNewItem
+          ? 'Request submitted! Item not in store — sent to Approval Authority for procurement.'
+          : 'Asset withdrawal request created successfully!'
+      );
       onSuccess();
     } catch (err: any) {
       alert('Failed to create request: ' + err.message);
@@ -663,19 +726,37 @@ function CreateRequestModal({ onClose, onSuccess, currentUser }: {
                           {index + 1}
                         </td>
                         <td className="px-4 py-3">
-                          <select
-                            required
-                            value={item.assetId}
-                            onChange={(e) => handleItemChange(index, 'assetId', e.target.value)}
-                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          >
-                            <option value="">Select Asset</option>
-                            {assets.map(asset => (
-                              <option key={asset.id} value={asset.id}>
-                                {asset.name} ({asset.serialNumber})
-                              </option>
-                            ))}
-                          </select>
+                          <div className="space-y-1">
+                            <select
+                              value={item.assetId}
+                              onChange={(e) => handleItemChange(index, 'assetId', e.target.value)}
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                              <option value="">-- Select existing asset --</option>
+                              {assets.map(asset => (
+                                <option key={asset.id} value={asset.id}>
+                                  {asset.name} ({asset.serialNumber})
+                                </option>
+                              ))}
+                            </select>
+                            <div className="flex items-center gap-1 text-xs text-gray-400">
+                              <span>or type new item:</span>
+                            </div>
+                            <input
+                              type="text"
+                              value={item.assetId ? '' : item.assetName}
+                              onChange={(e) => {
+                                handleItemChange(index, 'assetId', '');
+                                handleItemChange(index, 'assetName', e.target.value);
+                              }}
+                              disabled={!!item.assetId}
+                              required={!item.assetId}
+                              className={`w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                item.assetId ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' : 'border-gray-300'
+                              }`}
+                              placeholder="e.g. HP LaserJet Printer"
+                            />
+                          </div>
                         </td>
                         <td className="px-4 py-3">
                           <input
@@ -779,6 +860,196 @@ function CreateRequestModal({ onClose, onSuccess, currentUser }: {
               </Button>
             </div>
           </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Workflow Action Modal
+function WorkflowActionModal({
+  request, currentUser, actionLoading, onClose,
+  onApproveAA, onApproveVP, onPropertyOfficerComplete,
+  onMarkProcured, onQAInspect, onCollect
+}: {
+  request: any;
+  currentUser: User | null;
+  actionLoading: boolean;
+  onClose: () => void;
+  onApproveAA: (wfId: string, d: 'approve' | 'reject', permittedAmount?: number) => void;
+  onApproveVP: (wfId: string, d: 'approve' | 'reject') => void;
+  onPropertyOfficerComplete: (wfId: string) => void;
+  onMarkProcured: (wfId: string) => void;
+  onQAInspect: (wfId: string, d: 'approve' | 'reject') => void;
+  onCollect: (requestId: string) => void;
+}) {
+  const wf = request.procurementWorkflow;
+  if (!wf) return null;
+
+  const isExistingAsset = wf.workflowType === 'existing_asset';
+
+  const stateLabels: Record<string, string> = {
+    pending_approval: 'Awaiting Approval Authority',
+    pending_vp_approval: 'Awaiting Vice President Approval',
+    pending_property_officer: isExistingAsset ? 'Awaiting Property Officer (Assign Asset)' : 'Awaiting Property Officer',
+    purchase_notification_sent: 'Purchase Department Notified',
+    pending_qa_inspection: 'Awaiting QA Inspection',
+    qa_approved: 'QA Approved',
+    qa_rejected: 'QA Rejected — Re-procurement needed',
+    item_ready: 'Item Ready for Collection',
+    completed: 'Completed',
+    rejected: 'Rejected',
+  };
+
+  const steps = isExistingAsset
+    ? [
+        { key: 'pending_approval', label: 'Approval Authority', icon: '1' },
+        { key: 'pending_property_officer', label: 'Property Officer', icon: '2' },
+        { key: 'completed', label: 'Assigned to User', icon: '3' },
+      ]
+    : [
+        { key: 'pending_approval', label: 'Approval Authority', icon: '1' },
+        { key: 'pending_vp_approval', label: 'Vice President', icon: '2' },
+        { key: 'pending_property_officer', label: 'Property Officer', icon: '3' },
+        { key: 'purchase_notification_sent', label: 'Purchase Dept.', icon: '4' },
+        { key: 'pending_qa_inspection', label: 'QA Inspection', icon: '5' },
+        { key: 'item_ready', label: 'Collection', icon: '6' },
+      ];
+
+  const stateOrder = steps.map(s => s.key);
+  const currentIdx = stateOrder.indexOf(wf.currentState);
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 space-y-6">
+          <div className="flex justify-between items-start">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Procurement Workflow</h2>
+              <p className="text-sm text-gray-500 mt-1">{request.itemName} — {request.workUnit}</p>
+            </div>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+          </div>
+
+          {/* Progress Steps */}
+          <div className="flex items-center justify-between">
+            {steps.map((step, i) => {
+              const done = currentIdx > i || wf.currentState === 'completed';
+              const active = currentIdx === i;
+              return (
+                <div key={step.key} className="flex flex-col items-center flex-1">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold
+                    ${done ? 'bg-green-500 text-white' : active ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                    {done ? '✓' : step.icon}
+                  </div>
+                  <span className="text-xs text-center mt-1 text-gray-500 leading-tight">{step.label}</span>
+                  {i < steps.length - 1 && (
+                    <div className={`absolute hidden`} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Current State */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-sm font-medium text-blue-800">Current Status</p>
+            <p className="text-blue-900 font-semibold mt-1">{stateLabels[wf.currentState] || wf.currentState}</p>
+          </div>
+
+          {/* Request Details */}
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div><span className="text-gray-500">Item:</span> <span className="font-medium">{request.itemName}</span></div>
+            <div><span className="text-gray-500">Qty:</span> <span className="font-medium">{request.quantity}</span></div>
+            <div><span className="text-gray-500">Requested by:</span> <span className="font-medium">{request.requester?.firstName} {request.requester?.lastName}</span></div>
+            <div><span className="text-gray-500">Work Unit:</span> <span className="font-medium">{request.workUnit}</span></div>
+            {request.purpose && <div className="col-span-2"><span className="text-gray-500">Purpose:</span> <span>{request.purpose}</span></div>}
+          </div>
+
+          {/* Approval History */}
+          {(wf.approvalAuthorityDecision || wf.vpDecision || wf.qaDecision) && (
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-gray-700">Approval History</p>
+              {wf.approvalAuthorityDecision && (
+                <div className={`text-sm p-2 rounded ${wf.approvalAuthorityDecision === 'approve' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+                  Approval Authority: {wf.approvalAuthorityDecision}
+                  {wf.permittedAmount ? ` — permitted qty: ${wf.permittedAmount}` : ''}
+                  {wf.approvalAuthorityComments ? ` — ${wf.approvalAuthorityComments}` : ''}
+                </div>
+              )}
+              {wf.vpDecision && (
+                <div className={`text-sm p-2 rounded ${wf.vpDecision === 'approve' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+                  Vice President: {wf.vpDecision} {wf.vpComments && `— ${wf.vpComments}`}
+                </div>
+              )}
+              {wf.qaDecision && (
+                <div className={`text-sm p-2 rounded ${wf.qaDecision === 'approve' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+                  QA Inspector: {wf.qaDecision} {wf.qaComments && `— ${wf.qaComments}`}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="border-t pt-4 space-y-3">
+            {wf.currentState === 'pending_approval' && (currentUser?.role === 'approval_authority' || currentUser?.role === 'administrator') && (
+              <div className="space-y-2">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Permitted Quantity (leave blank to permit full requested amount of {request.quantity})
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={request.quantity}
+                    id="permittedAmountInput"
+                    className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                    placeholder={`Max: ${request.quantity}`}
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => {
+                      const val = (document.getElementById('permittedAmountInput') as HTMLInputElement)?.value;
+                      onApproveAA(wf.id, 'approve', val ? parseInt(val) : undefined);
+                    }}
+                    disabled={actionLoading} className="flex-1"
+                  >
+                    Approve
+                  </Button>
+                  <Button variant="danger" onClick={() => onApproveAA(wf.id, 'reject', undefined)} disabled={actionLoading} className="flex-1">Reject</Button>
+                </div>
+              </div>
+            )}
+            {wf.currentState === 'pending_vp_approval' && (currentUser?.role === 'vice_president' || currentUser?.role === 'administrator') && (
+              <div className="flex gap-3">
+                <Button onClick={() => onApproveVP(wf.id, 'approve')} disabled={actionLoading} className="flex-1">Approve Purchase</Button>
+                <Button variant="danger" onClick={() => onApproveVP(wf.id, 'reject')} disabled={actionLoading} className="flex-1">Reject</Button>
+              </div>
+            )}
+            {wf.currentState === 'pending_property_officer' && (currentUser?.role === 'property_officer' || currentUser?.role === 'administrator') && (
+              <Button onClick={() => onPropertyOfficerComplete(wf.id)} disabled={actionLoading} className="w-full">
+                Complete & Notify Purchase Department
+              </Button>
+            )}
+            {wf.currentState === 'purchase_notification_sent' && (currentUser?.role === 'purchase_department' || currentUser?.role === 'administrator') && (
+              <Button onClick={() => onMarkProcured(wf.id)} disabled={actionLoading} className="w-full">
+                Mark Item as Procured
+              </Button>
+            )}
+            {wf.currentState === 'pending_qa_inspection' && (currentUser?.role === 'quality_assurance' || currentUser?.role === 'administrator') && (
+              <div className="flex gap-3">
+                <Button onClick={() => onQAInspect(wf.id, 'approve')} disabled={actionLoading} className="flex-1">QA Approve</Button>
+                <Button variant="danger" onClick={() => onQAInspect(wf.id, 'reject')} disabled={actionLoading} className="flex-1">QA Reject</Button>
+              </div>
+            )}
+            {wf.currentState === 'item_ready' && currentUser?.id === request.requestedBy && (
+              <Button onClick={() => onCollect(request.id)} disabled={actionLoading} className="w-full bg-green-600 hover:bg-green-700">
+                Collect Item
+              </Button>
+            )}
+            <Button variant="secondary" onClick={onClose} className="w-full">Close</Button>
+          </div>
         </div>
       </div>
     </div>

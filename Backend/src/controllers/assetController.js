@@ -38,13 +38,37 @@ const getAssets = async (req, res, next) => {
       where.assignedTo = assignedTo;
     }
 
+    // Staff filtering logic
+    const staffRoles = ['staff'];
+    if (staffRoles.includes(req.user.role)) {
+      // If requesting available assets (for new request form), show available assets
+      // Otherwise, show only their assigned assets
+      if (status === 'available' || req.query.includeAvailable === 'true') {
+        where.status = 'available';
+        where.assignedTo = null;
+      } else {
+        // Default: only show their assigned assets
+        where.assignedTo = req.user.id;
+      }
+    }
+
     if (search) {
-      where[Op.or] = [
+      const searchConditions = [
         { name: { [Op.iLike]: `%${search}%` } },
         { assetId: { [Op.iLike]: `%${search}%` } },
         { serialNumber: { [Op.iLike]: `%${search}%` } },
         { description: { [Op.iLike]: `%${search}%` } }
       ];
+      
+      // If staff role and not looking for available assets, combine search with assignedTo filter
+      if (staffRoles.includes(req.user.role) && status !== 'available' && req.query.includeAvailable !== 'true') {
+        where[Op.and] = [
+          { assignedTo: req.user.id },
+          { [Op.or]: searchConditions }
+        ];
+      } else {
+        where[Op.or] = searchConditions;
+      }
     }
 
     // Calculate pagination
@@ -135,22 +159,16 @@ const createAsset = async (req, res, next) => {
       serialNumber,
       value,
       purchaseDate,
-      location,
       workUnit,
       status,
       condition,
       description,
-      warrantyExpiry
+      warrantyExpiry,
+      itemCategory,
+      sourceType,
+      donorName,
+      quantity
     } = req.body;
-
-    // Check if assetId already exists
-    const existingAsset = await db.Asset.findOne({ where: { assetId } });
-    if (existingAsset) {
-      return res.status(409).json({
-        success: false,
-        message: 'Asset ID already exists'
-      });
-    }
 
     // Check if serialNumber already exists (if provided)
     if (serialNumber) {
@@ -163,20 +181,45 @@ const createAsset = async (req, res, next) => {
       }
     }
 
+    // Auto-generate tag number based on source type and donor/supplier
+    const count = await db.Asset.count();
+    const seq = String(count + 1).padStart(5, '0');
+    let tagNumber;
+    if (sourceType === 'donation' && donorName) {
+      // Use initials of each word in donor name (e.g. "Wollo University" → "WU")
+      const initials = donorName.trim().split(/\s+/).map(w => w[0]).join('').toUpperCase();
+      tagNumber = `${initials}${seq}`;
+    } else if (sourceType === 'transferred' && donorName) {
+      // Use initials of transferring org (e.g. "Ministry of Innovation" → "MOI")
+      const initials = donorName.trim().split(/\s+/).map(w => w[0]).join('').toUpperCase();
+      tagNumber = `${initials}${seq}`;
+    } else {
+      // Purchased — always WDU prefix
+      tagNumber = `WDU${seq}`;
+    }
+
+    // Auto-generate assetId from tagNumber if not provided
+    const finalAssetId = assetId || tagNumber;
+
     // Create asset
     const asset = await db.Asset.create({
-      assetId,
+      assetId: finalAssetId,
       name,
       category,
       serialNumber,
       value,
       purchaseDate,
-      location,
+      location: 'Store', // Always default to Store initially
       workUnit,
       status: status || 'available',
       condition: condition || 'excellent',
       description,
       warrantyExpiry,
+      tagNumber,
+      itemCategory,
+      sourceType: sourceType || 'purchased',
+      donorName,
+      quantity: quantity || 1,
       createdBy: req.user.id
     });
 
@@ -254,7 +297,7 @@ const updateAsset = async (req, res, next) => {
     const previousAssignedTo = asset.assignedTo;
     const newAssignedTo = updates.assignedTo;
 
-    // If assigning to user, verify user exists
+    // If assigning to user, verify user exists and update location
     if (updates.assignedTo) {
       const user = await db.User.findByPk(updates.assignedTo);
       if (!user) {
@@ -265,9 +308,14 @@ const updateAsset = async (req, res, next) => {
       }
       // Auto-update status to assigned
       updates.status = 'assigned';
+      // Update location to user's work unit
+      if (user.workUnit) {
+        updates.location = user.workUnit;
+      }
     } else if (updates.assignedTo === null) {
-      // If unassigning, set status to available
+      // If unassigning, set status to available and location back to Store
       updates.status = 'available';
+      updates.location = 'Store';
     }
 
     // Update asset

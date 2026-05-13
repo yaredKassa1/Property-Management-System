@@ -11,12 +11,15 @@ import { Badge } from '@/components/ui/Badge';
 import { api } from '@/lib/api';
 import { Asset } from '@/lib/types';
 import { formatDate, formatCurrency, getStatusColor } from '@/lib/utils';
+import { getUser } from '@/lib/auth';
 
 export default function AssetsPage() {
   const router = useRouter();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const user = getUser();
+  const isPropertyOfficer = user?.role === 'property_officer' || user?.role === 'administrator';
 
   useEffect(() => {
     loadAssets();
@@ -24,8 +27,10 @@ export default function AssetsPage() {
 
   const loadAssets = async () => {
     try {
-      const data = await api.getAssets() as Asset[];
-      setAssets(data);
+      // Backend already filters: staff only see their assigned assets
+      const data = await api.getAssets() as any;
+      const list: Asset[] = Array.isArray(data) ? data : data?.data || [];
+      setAssets(list);
     } catch (error) {
       console.error('Failed to load assets:', error);
     } finally {
@@ -45,11 +50,15 @@ export default function AssetsPage() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Assets</h1>
-            <p className="text-gray-600">Manage university property assets</p>
+            <p className="text-gray-600">
+              {isPropertyOfficer ? 'Manage university property assets' : 'Your assigned assets'}
+            </p>
           </div>
-          <Button onClick={() => router.push('/assets/new')}>
-            + Register New Asset
-          </Button>
+          {isPropertyOfficer && (
+            <Button onClick={() => router.push('/assets/new')}>
+              + Register New Asset
+            </Button>
+          )}
         </div>
 
         <Card>
@@ -63,25 +72,28 @@ export default function AssetsPage() {
 
           {loading ? (
             <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
             </div>
           ) : filteredAssets.length > 0 ? (
             <Table>
               <TableHeader>
+                <TableHead>Tag No.</TableHead>
                 <TableHead>Asset ID</TableHead>
                 <TableHead>Name</TableHead>
+                <TableHead>Item Category</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Location</TableHead>
+                <TableHead>Qty</TableHead>
                 <TableHead>Value</TableHead>
-                <TableHead>Purchase Date</TableHead>
                 <TableHead>Actions</TableHead>
               </TableHeader>
               <TableBody>
                 {filteredAssets.map((asset) => (
                   <TableRow key={asset.id}>
+                    <TableCell className="font-mono text-xs">{(asset as any).tagNumber || '—'}</TableCell>
                     <TableCell className="font-medium">{asset.assetId}</TableCell>
                     <TableCell>{asset.name}</TableCell>
+                    <TableCell>{(asset as any).itemCategory || '—'}</TableCell>
                     <TableCell>
                       <Badge variant={asset.category === 'fixed' ? 'info' : 'default'}>
                         {asset.category === 'fixed' ? 'Fixed' : 'Fixed-Consumable'}
@@ -92,15 +104,10 @@ export default function AssetsPage() {
                         {asset.status.replace('_', ' ')}
                       </span>
                     </TableCell>
-                    <TableCell>{asset.location}</TableCell>
+                    <TableCell>{(asset as any).quantity ?? 1}</TableCell>
                     <TableCell>{formatCurrency(asset.value)}</TableCell>
-                    <TableCell>{formatDate(asset.purchaseDate)}</TableCell>
                     <TableCell>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => router.push(`/assets/${asset.id}`)}
-                      >
+                      <Button size="sm" variant="ghost" onClick={() => router.push(`/assets/${asset.id}`)}>
                         View
                       </Button>
                     </TableCell>
@@ -110,7 +117,7 @@ export default function AssetsPage() {
             </Table>
           ) : (
             <div className="text-center py-12 text-gray-500">
-              {searchTerm ? 'No assets found matching your search' : 'No assets registered yet'}
+              {searchTerm ? 'No assets found matching your search' : 'No assets found'}
             </div>
           )}
         </Card>

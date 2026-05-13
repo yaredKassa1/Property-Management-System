@@ -10,6 +10,8 @@ const Request = require('./Request')(sequelize, DataTypes);
 const AuditLog = require('./AuditLog')(sequelize, DataTypes);
 const TransferHistory = require('./TransferHistory')(sequelize, DataTypes);
 const Notification = require('./Notification')(sequelize, DataTypes);
+const ProcurementInspection = require('./ProcurementInspection')(sequelize, DataTypes);
+const ProcurementWorkflow = require('./ProcurementWorkflow')(sequelize, DataTypes);
 
 // Define associations
 const db = {
@@ -22,6 +24,8 @@ const db = {
   AuditLog,
   TransferHistory,
   Notification,
+  ProcurementInspection,
+  ProcurementWorkflow,
 };
 
 // ==================== User <-> Asset Relationships ====================
@@ -139,6 +143,11 @@ db.Request.belongsTo(db.User, {
   as: 'approver'
 });
 
+db.Request.belongsTo(db.User, {
+  foreignKey: 'processedBy',
+  as: 'processor'
+});
+
 db.Asset.hasMany(db.Request, {
   foreignKey: 'assetId',
   as: 'requests'
@@ -184,5 +193,87 @@ db.User.hasMany(db.TransferHistory, {
 // Notification belongs to User
 db.Notification.belongsTo(db.User, { foreignKey: 'userId', as: 'recipient' });
 db.User.hasMany(db.Notification, { foreignKey: 'userId', as: 'notifications' });
+
+// ==================== ProcurementInspection Relationships ====================
+db.ProcurementInspection.belongsTo(db.Request, {
+  foreignKey: 'requestId',
+  as: 'request'
+});
+
+db.ProcurementInspection.belongsTo(db.Asset, {
+  foreignKey: 'assetId',
+  as: 'asset'
+});
+
+db.ProcurementInspection.belongsTo(db.User, {
+  foreignKey: 'inspectedBy',
+  as: 'inspector'
+});
+
+db.Asset.hasMany(db.ProcurementInspection, {
+  foreignKey: 'assetId',
+  as: 'procurementInspections'
+});
+
+db.Request.hasMany(db.ProcurementInspection, {
+  foreignKey: 'requestId',
+  as: 'procurementInspections'
+});
+
+db.User.hasMany(db.ProcurementInspection, {
+  foreignKey: 'inspectedBy',
+  as: 'conductedInspections'
+});
+
+// ==================== ProcurementWorkflow Relationships ====================
+db.ProcurementWorkflow.belongsTo(db.Request, {
+  foreignKey: 'requestId',
+  as: 'request'
+});
+
+db.ProcurementWorkflow.belongsTo(db.User, {
+  foreignKey: 'approvalAuthorityId',
+  as: 'approvalAuthority'
+});
+
+db.ProcurementWorkflow.belongsTo(db.User, {
+  foreignKey: 'vpId',
+  as: 'vicePresident'
+});
+
+db.ProcurementWorkflow.belongsTo(db.User, {
+  foreignKey: 'propertyOfficerId',
+  as: 'propertyOfficer'
+});
+
+db.ProcurementWorkflow.belongsTo(db.User, {
+  foreignKey: 'qaInspectorId',
+  as: 'qaInspector'
+});
+
+db.Request.hasOne(db.ProcurementWorkflow, {
+  foreignKey: 'requestId',
+  as: 'procurementWorkflow'
+});
+
+db.User.hasMany(db.ProcurementWorkflow, {
+  foreignKey: 'approvalAuthorityId',
+  as: 'approvalAuthorityWorkflows'
+});
+
+db.User.hasMany(db.ProcurementWorkflow, {
+  foreignKey: 'vpId',
+  as: 'vpWorkflows'
+});
+
+db.User.hasMany(db.ProcurementWorkflow, {
+  foreignKey: 'propertyOfficerId',
+  as: 'propertyOfficerWorkflows'
+});
+
+db.User.hasMany(db.ProcurementWorkflow, {
+  foreignKey: 'qaInspectorId',
+  as: 'qaInspectorWorkflows'
+});
 
 module.exports = db;

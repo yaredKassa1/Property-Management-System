@@ -22,6 +22,12 @@ const getReturns = async (req, res, next) => {
     if (returnedBy) where.returnedBy = returnedBy;
     if (assetId) where.assetId = assetId;
 
+    // Staff only see their own returns; officers/admins see all
+    const staffOnly = ['staff', 'purchase_department', 'quality_assurance'];
+    if (staffOnly.includes(req.user.role)) {
+      where.returnedBy = req.user.id;
+    }
+
     const offset = (page - 1) * limit;
 
     const { count, rows } = await db.Return.findAndCountAll({

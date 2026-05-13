@@ -39,17 +39,25 @@ export function Header({ user }: HeaderProps) {
     setShowLanguageDropdown(false);
   };
 
-  const handleNotificationClick = (id: string, type: string) => {
+  const handleNotificationClick = (id: string, type: string, title?: string) => {
     markAsRead(id);
     setShowNotificationPanel(false);
-    // Navigate to the relevant page based on notification type
-    const routes: Record<string, string> = {
-      request: '/requests',
-      transfer: '/transfers',
-      return: '/returns',
-      general: '/dashboard',
-    };
-    router.push(routes[type] || '/dashboard');
+    // Route based on notification title keywords
+    const t = (title || '').toLowerCase();
+    if (t.includes('vp') || t.includes('vice president') || t.includes('purchase request awaiting')) {
+      router.push('/vp-approvals');
+    } else if (t.includes('purchase order') || t.includes('procure') || t.includes('procurement')) {
+      router.push('/procurement');
+    } else if (t.includes('qa') || t.includes('quality') || t.includes('inspection')) {
+      router.push('/qa-inspections');
+    } else if (t.includes('approval') || t.includes('approve') || t.includes('request')) {
+      router.push('/requests');
+    } else {
+      const routes: Record<string, string> = {
+        request: '/requests', transfer: '/transfers', return: '/returns', general: '/dashboard',
+      };
+      router.push(routes[type] || '/dashboard');
+    }
   };
 
   return (
@@ -109,7 +117,7 @@ export function Header({ user }: HeaderProps) {
                     {notifications.map((notif) => (
                       <button
                         key={notif.id}
-                        onClick={() => handleNotificationClick(notif.id, notif.type)}
+                        onClick={() => handleNotificationClick(notif.id, notif.type, notif.title)}
                         className={`w-full text-left px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors ${
                           !notif.isRead ? 'bg-blue-50' : ''
                         }`}

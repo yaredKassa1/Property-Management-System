@@ -40,7 +40,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
 export function useTheme() {
   const ctx = useContext(ThemeContext);
-  if (!ctx) throw new Error('useTheme must be used within ThemeProvider');
+  if (!ctx) {
+    // Return safe defaults during SSR or when used outside provider
+    return { theme: 'light' as Theme, toggleTheme: () => {} };
+  }
   return ctx;
 }
 
@@ -341,7 +344,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
 export function useLanguage() {
   const ctx = useContext(LanguageContext);
-  if (!ctx) throw new Error('useLanguage must be used within LanguageProvider');
+  if (!ctx) {
+    return { language: 'en' as Language, setLanguage: () => {}, t: (key: string) => key };
+  }
   return ctx;
 }
 
@@ -444,6 +449,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
 export function useNotifications() {
   const ctx = useContext(NotificationContext);
-  if (!ctx) throw new Error('useNotifications must be used within NotificationProvider');
+  if (!ctx) {
+    return { notifications: [], unreadCount: 0, markAsRead: () => {}, markAllAsRead: () => {}, refresh: () => {} };
+  }
   return ctx;
 }

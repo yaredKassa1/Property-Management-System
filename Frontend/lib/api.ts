@@ -17,7 +17,8 @@ class ApiClient {
       const response = await fetch(url, config);
       if (!response.ok) {
         const error = await response.json().catch(() => ({ message: 'Request failed' }));
-        throw new Error(error.message || `HTTP ${response.status}`);
+        const detail = error.errors?.map((e: any) => `${e.field}: ${e.message}`).join(', ');
+        throw new Error(detail || error.message || `HTTP ${response.status}`);
       }
       const data = await response.json();
       if (data.success && data.data !== undefined) return data.data as T;
@@ -85,6 +86,30 @@ class ApiClient {
   async completeRequest(id: string, completerSignature?: string) { return this.request(`/requests/${id}/complete`, { method: 'POST', body: JSON.stringify({ completerSignature }) }); }
   async cancelRequest(id: string) { return this.request(`/requests/${id}`, { method: 'DELETE' }); }
 
+  // Procurement (purchase_department)
+  async getProcurementRequests(params?: Record<string, string>) {
+    const query = params && Object.keys(params).length > 0 ? `?${new URLSearchParams(params)}` : '';
+    const url = `${API_URL}/requests/procurement/list${query}`;
+    const response = await fetch(url, { headers: this.getHeaders() });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Request failed' }));
+      throw new Error(error.message || `HTTP ${response.status}`);
+    }
+    return response.json();
+  }
+  async processProcurement(id: string, data: {
+    procurementStatus: 'procurement_in_progress' | 'purchased' | 'delivered';
+    supplierName?: string;
+    supplierContact?: string;
+    quotationAmount?: number;
+    purchaseOrderNumber?: string;
+    procurementNotes?: string;
+    expectedDeliveryDate?: string;
+    actualDeliveryDate?: string;
+  }) {
+    return this.request(`/requests/${id}/procurement`, { method: 'POST', body: JSON.stringify(data) });
+  }
+
   // Users
   async getUsers(params?: Record<string, string>) {
     const query = params ? `?${new URLSearchParams(params)}` : '';
@@ -123,6 +148,52 @@ class ApiClient {
   async getNotifications() { return this.request('/notifications'); }
   async markNotificationRead(id: string) { return this.request(`/notifications/${id}/read`, { method: 'POST' }); }
 
+  // QA Inspections
+  async getProcurementInspections(params?: Record<string, string>) {
+    const query = params && Object.keys(params).length > 0 ? `?${new URLSearchParams(params)}` : '';
+    const url = `${API_URL}/qa-inspections${query}`;
+    const response = await fetch(url, { headers: this.getHeaders() });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Request failed' }));
+      throw new Error(error.message || `HTTP ${response.status}`);
+    }
+    return response.json(); // return full response including stats
+  }
+  async getProcurementInspection(id: string) { return this.request(`/qa-inspections/${id}`); }
+  async submitProcurementInspection(id: string, data: {
+    result: 'approved' | 'rejected' | 'needs_correction';
+    assessedCondition: string;
+    remarks?: string;
+    rejectionReason?: string;
+    correctionRequired?: string;
+  }) {
+    return this.request(`/qa-inspections/${id}/inspect`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  // Procurement Workflows
+  async getWorkflow(id: string) { return this.request(`/workflows/${id}`); }
+  async approveWorkflow(id: string, decision: 'approve' | 'reject', comments?: string, permittedAmount?: number) {
+    return this.request(`/workflows/${id}/approve`, { method: 'POST', body: JSON.stringify({ decision, comments, permittedAmount }) });
+  }
+  async propertyOfficerComplete(id: string) {
+    return this.request(`/workflows/${id}/property-officer-complete`, { method: 'POST' });
+  }
+  async markProcured(id: string, procurementDetails?: any) {
+    return this.request(`/workflows/${id}/mark-procured`, { method: 'POST', body: JSON.stringify({ procurementDetails }) });
+  }
+  async qaInspect(id: string, decision: 'approve' | 'reject', comments?: string, inspectionDetails?: any) {
+    const payload: any = { decision };
+    if (comments) payload.comments = comments;
+    if (inspectionDetails) payload.inspectionDetails = inspectionDetails;
+    return this.request(`/workflows/${id}/qa-inspect`, { method: 'POST', body: JSON.stringify(payload) });
+  }
+  async collectItem(requestId: string) {
+    return this.request(`/requests/${requestId}/collect`, { method: 'POST' });
+  }
+
   // Dashboard
   async getDashboardStats() { return this.request('/dashboard/stats'); }
   async getPropertyOfficerStats(params?: { startDate?: string; endDate?: string }) {
@@ -132,6 +203,14 @@ class ApiClient {
 
   // Reports
   async generateReport(filters: any) { return this.request('/reports/generate', { method: 'POST', body: JSON.stringify(filters) }); }
+  async getAssetStatusReport(filters?: any) { return this.request('/reports/asset-status', { method: 'POST', body: JSON.stringify(filters || {}) }); }
+  async getAssetAssignmentReport(filters?: any) { return this.request('/reports/asset-assignment', { method: 'POST', body: JSON.stringify(filters || {}) }); }
+  async getWorkUnitSummaryReport(filters?: any) { return this.request('/reports/work-unit-summary', { method: 'POST', body: JSON.stringify(filters || {}) }); }
+  async getOverdueReturnsReport(filters?: any) { return this.request('/reports/overdue-returns', { method: 'POST', body: JSON.stringify(filters || {}) }); }
+  async getAssetConditionReport(filters?: any) { return this.request('/reports/asset-condition', { method: 'POST', body: JSON.stringify(filters || {}) }); }
+  async getRequestStatusReport(filters?: any) { return this.request('/reports/request-status', { method: 'POST', body: JSON.stringify(filters || {}) }); }
+  async getTransferReport(filters?: any) { return this.request('/reports/transfers', { method: 'POST', body: JSON.stringify(filters || {}) }); }
+  async getInventoryReport(filters?: any) { return this.request('/reports/inventory', { method: 'POST', body: JSON.stringify(filters || {}) }); }
 }
 
 export const api = new ApiClient();

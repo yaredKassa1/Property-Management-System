@@ -13,7 +13,9 @@ const {
   approveRequest,
   rejectRequest,
   completeRequest,
-  cancelRequest
+  cancelRequest,
+  processProcurement,
+  getProcurementRequests
 } = require('../controllers/requestController');
 
 // All routes require authentication
@@ -43,8 +45,8 @@ router.get(
       .withMessage('Page must be a positive integer'),
     query('limit')
       .optional()
-      .isInt({ min: 1, max: 100 })
-      .withMessage('Limit must be between 1 and 100')
+      .isInt({ min: 1, max: 500 })
+      .withMessage('Limit must be between 1 and 500')
   ],
   validate,
   getRequests
@@ -233,6 +235,49 @@ router.delete(
   ],
   validate,
   cancelRequest
+);
+
+// @route   POST /api/requests/:id/collect
+// @desc    Requestor confirms item collection
+// @access  Private
+router.post(
+  '/:id/collect',
+  [param('id').isUUID().withMessage('Invalid request ID')],
+  validate,
+  async (req, res, next) => {
+    try {
+      const approvalHandlers = require('../services/approvalHandlers');
+      const result = await approvalHandlers.handleItemCollection(req.params.id, req.user.id);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// @route   GET /api/requests/procurement/list
+// @desc    Get purchase requests for procurement dashboard
+// @access  Private (purchase_department, administrator)
+router.get(
+  '/procurement/list',
+  requireRole('purchase_department', 'administrator'),
+  getProcurementRequests
+);
+
+// @route   POST /api/requests/:id/procurement
+// @desc    Update procurement status
+// @access  Private (purchase_department, administrator)
+router.post(
+  '/:id/procurement',
+  requireRole('purchase_department', 'administrator'),
+  [
+    param('id').isUUID().withMessage('Invalid request ID'),
+    body('procurementStatus')
+      .isIn(['procurement_in_progress', 'purchased', 'delivered'])
+      .withMessage('Invalid procurement status')
+  ],
+  validate,
+  processProcurement
 );
 
 module.exports = router;

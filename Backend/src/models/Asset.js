@@ -54,7 +54,8 @@ module.exports = (sequelize, DataTypes) => {
         'assigned',
         'in_transfer',
         'under_maintenance',
-        'disposed'
+        'disposed',
+        'pending_qa'
       ),
       allowNull: false,
       defaultValue: 'available'
@@ -87,6 +88,33 @@ module.exports = (sequelize, DataTypes) => {
     warrantyExpiry: {
       type: DataTypes.DATEONLY,
       allowNull: true
+    },
+    tagNumber: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      unique: true,
+      comment: 'Auto-generated tag number e.g. WDU2167 for purchased, WU27163 for donation'
+    },
+    itemCategory: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      comment: 'Item category e.g. Furniture and Fixtures, Electronics, Vehicles'
+    },
+    sourceType: {
+      type: DataTypes.ENUM('purchased', 'donation', 'transferred'),
+      allowNull: true,
+      defaultValue: 'purchased'
+    },
+    donorName: {
+      type: DataTypes.STRING(200),
+      allowNull: true,
+      comment: 'Name of donor or supplier'
+    },
+    quantity: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 1,
+      validate: { min: 1 }
     },
     createdBy: {
       type: DataTypes.UUID,

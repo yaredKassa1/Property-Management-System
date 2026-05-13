@@ -1,6 +1,7 @@
 const { Op } = require('sequelize');
 const db = require('../models');
 const { createNotification } = require('./notificationController');
+const requestService = require('../services/requestService');
 const { 
   notifyRequestCreated, 
   notifyRequestApproved, 
@@ -51,6 +52,7 @@ const getRequests = async (req, res, next) => {
         {
           model: db.Asset,
           as: 'asset',
+          required: false,
           attributes: ['id', 'assetId', 'name', 'serialNumber', 'category']
         },
         {
@@ -61,12 +63,26 @@ const getRequests = async (req, res, next) => {
         {
           model: db.User,
           as: 'approvalAuthority',
+          required: false,
           attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'role']
         },
         {
           model: db.User,
           as: 'approver',
+          required: false,
           attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'role']
+        },
+        {
+          model: db.ProcurementWorkflow,
+          as: 'procurementWorkflow',
+          required: false,
+          attributes: [
+            'id', 'currentState', 'workflowType', 'permittedAmount',
+            'approvalAuthorityDecision', 'approvalAuthorityComments', 'approvalAuthorityTimestamp',
+            'vpDecision', 'vpComments', 'vpTimestamp',
+            'qaDecision', 'qaComments', 'qaTimestamp',
+            'itemProcuredAt', 'completedAt'
+          ]
         }
       ]
     });
@@ -153,109 +169,55 @@ const createRequest = async (req, res, next) => {
       requesterSignature
     } = req.body;
 
-    // If assetId provided, verify it exists
-    if (assetId) {
-      const asset = await db.Asset.findByPk(assetId);
-      if (!asset) {
-        return res.status(404).json({
-          success: false,
-          message: 'Asset not found'
-        });
-      }
-    }
-
     // Validate approval authority if provided
     if (approvalAuthorityId) {
       const approvalAuthority = await db.User.findByPk(approvalAuthorityId);
       if (!approvalAuthority) {
-        return res.status(404).json({
-          success: false,
-          message: 'Approval authority not found'
-        });
+        return res.status(404).json({ success: false, message: 'Approval authority not found' });
       }
-      // Verify the user is actually an approval authority
       if (!['approval_authority', 'vice_president'].includes(approvalAuthority.role)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Selected user is not an approval authority'
-        });
+        return res.status(400).json({ success: false, message: 'Selected user is not an approval authority' });
       }
     }
 
-    // Create request with status 'in_progress' and requestor signature
-    const request = await db.Request.create({
-      requestType,
+    // Use requestService to handle inventory check + workflow creation
+    const createdRequest = await requestService.submitRequest(req.user.id, {
+      requestType: requestType || 'purchase',
       assetId,
+      itemType: itemName,
       itemName,
       quantity: quantity || 1,
       estimatedCost,
+      urgency: priority || 'medium',
       priority: priority || 'medium',
-      status: 'in_progress',
-      requestedBy: req.user.id,
       workUnit: workUnit || req.user.workUnit,
       approvalAuthorityId,
       purpose,
       justification,
       specifications,
-      requesterSignature,
-      requestDate: new Date()
-    });
-
-    // Fetch with relations
-    const createdRequest = await db.Request.findByPk(request.id, {
-      include: [
-        { model: db.Asset, as: 'asset' },
-        { model: db.User, as: 'requester', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'email', 'workUnit'] },
-        { model: db.User, as: 'approvalAuthority', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'email'] }
-      ]
+      requesterSignature
     });
 
     // Send email notification to approval authority
     try {
-      if (createdRequest.approvalAuthority) {
-        await notifyRequestCreated(createdRequest, createdRequest.requester, createdRequest.approvalAuthority);
+      const fullRequest = await db.Request.findByPk(createdRequest.id, {
+        include: [
+          { model: db.User, as: 'requester', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'email', 'workUnit'] },
+          { model: db.User, as: 'approvalAuthority', attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'email'] }
+        ]
+      });
+      if (fullRequest?.approvalAuthority) {
+        await notifyRequestCreated(fullRequest, fullRequest.requester, fullRequest.approvalAuthority);
       }
     } catch (emailError) {
       console.error('Failed to send email notification:', emailError);
     }
 
-    // In-app notifications
-    try {
-      const requesterName = `${createdRequest.requester?.firstName || ''} ${createdRequest.requester?.lastName || ''}`.trim();
-      const itemName = createdRequest.itemName || 'an asset';
-
-      // Notify the assigned approval authority
-      if (createdRequest.approvalAuthorityId) {
-        await createNotification({
-          userIds: createdRequest.approvalAuthorityId,
-          title: 'New Asset Request',
-          message: `${requesterName} submitted a request for "${itemName}". Please review and approve.`,
-          type: 'request',
-          relatedId: createdRequest.id,
-        });
-      }
-
-      // Notify all property officers
-      const propertyOfficers = await db.User.findAll({
-        where: { role: 'property_officer', isActive: true },
-        attributes: ['id'],
-      });
-      if (propertyOfficers.length) {
-        await createNotification({
-          userIds: propertyOfficers.map(u => u.id),
-          title: 'New Asset Request',
-          message: `${requesterName} submitted a request for "${itemName}".`,
-          type: 'request',
-          relatedId: createdRequest.id,
-        });
-      }
-    } catch (notifError) {
-      console.error('Failed to create in-app notification:', notifError.message, notifError.stack);
-    }
-
     res.status(201).json({
       success: true,
-      message: 'Request created successfully',
+      message: createdRequest.fulfillmentPath === 'direct'
+        ? 'Request fulfilled directly from inventory'
+        : 'Request submitted — sent to Approval Authority for review',
       data: createdRequest
     });
   } catch (error) {
@@ -571,6 +533,42 @@ const completeRequest = async (req, res, next) => {
       }
     }
 
+    // If it's a purchase request with an asset, trigger QA inspection workflow
+    if (request.requestType === 'purchase' && request.assetId) {
+      try {
+        // 1. Create ProcurementInspection record
+        await db.ProcurementInspection.create({
+          requestId: request.id,
+          assetId: request.assetId,
+          status: 'pending'
+        });
+
+        // 2. Set asset to pending_qa
+        await db.Asset.update(
+          { status: 'pending_qa' },
+          { where: { id: request.assetId } }
+        );
+
+        // 3. Notify all active QA officers
+        const qaOfficers = await db.User.findAll({
+          where: { role: 'quality_assurance', isActive: true },
+          attributes: ['id']
+        });
+        if (qaOfficers.length) {
+          await createNotification({
+            userIds: qaOfficers.map(u => u.id),
+            title: 'New Asset Awaiting QA Inspection',
+            message: `Asset "${request.itemName}" has been delivered and requires quality inspection.`,
+            type: 'general',
+            relatedId: request.id
+          });
+        }
+      } catch (qaError) {
+        console.error('Failed to create QA inspection:', qaError);
+        // Don't fail the entire request completion if QA setup fails
+      }
+    }
+
     const updatedRequest = await db.Request.findByPk(id, {
       include: [
         { model: db.Asset, as: 'asset' },
@@ -654,6 +652,187 @@ const cancelRequest = async (req, res, next) => {
   }
 };
 
+// @desc    Get purchase requests for procurement dashboard
+// @route   GET /api/requests/procurement
+// @access  Private (purchase_department, administrator)
+const getProcurementRequests = async (req, res, next) => {
+  try {
+    const { status, page = 1, limit = 10 } = req.query;
+    const where = { requestType: 'purchase' };
+    if (status) where.status = status;
+
+    const offset = (page - 1) * limit;
+    const { count, rows } = await db.Request.findAndCountAll({
+      where,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['requestDate', 'DESC']],
+      include: [
+        { model: db.User, as: 'requester', attributes: ['id', 'firstName', 'middleName', 'lastName', 'workUnit'] },
+        { model: db.User, as: 'approver', attributes: ['id', 'firstName', 'middleName', 'lastName'] },
+        { model: db.User, as: 'processor', attributes: ['id', 'firstName', 'middleName', 'lastName'] },
+        { model: db.Asset, as: 'asset', attributes: ['id', 'assetId', 'name', 'status'] }
+      ]
+    });
+
+    // Stats
+    const stats = await db.Request.findAll({
+      where: { requestType: 'purchase' },
+      attributes: ['status', [db.sequelize.fn('COUNT', db.sequelize.col('id')), 'count']],
+      group: ['status'],
+      raw: true
+    });
+    const statsMap = { total: count, approved: 0, procurement_in_progress: 0, purchased: 0, delivered: 0, completed: 0 };
+    stats.forEach(s => { if (statsMap.hasOwnProperty(s.status)) statsMap[s.status] = parseInt(s.count); });
+
+    res.status(200).json({
+      success: true,
+      data: rows,
+      stats: statsMap,
+      pagination: { page: parseInt(page), limit: parseInt(limit), total: count, pages: Math.ceil(count / limit) }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Update procurement status of a purchase request
+// @route   POST /api/requests/:id/procurement
+// @access  Private (purchase_department, administrator)
+const processProcurement = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const {
+      procurementStatus,
+      supplierName,
+      supplierContact,
+      quotationAmount,
+      purchaseOrderNumber,
+      procurementNotes,
+      expectedDeliveryDate,
+      actualDeliveryDate
+    } = req.body;
+
+    if (!procurementStatus) {
+      return res.status(400).json({ success: false, message: 'Procurement status is required' });
+    }
+
+    const validStatuses = ['procurement_in_progress', 'purchased', 'delivered'];
+    if (!validStatuses.includes(procurementStatus)) {
+      return res.status(400).json({ success: false, message: `Invalid procurement status. Must be one of: ${validStatuses.join(', ')}` });
+    }
+
+    const request = await db.Request.findByPk(id, {
+      include: [{ model: db.User, as: 'requester', attributes: ['id', 'firstName', 'lastName'] }]
+    });
+
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Request not found' });
+    }
+
+    if (request.requestType !== 'purchase') {
+      return res.status(400).json({ success: false, message: 'Only purchase requests can be processed for procurement' });
+    }
+
+    // Must be approved before procurement can start
+    const allowedFromStatuses = ['approved', 'procurement_in_progress', 'purchased'];
+    if (!allowedFromStatuses.includes(request.status)) {
+      return res.status(400).json({ success: false, message: `Cannot process procurement for request with status: ${request.status}. Request must be approved first.` });
+    }
+
+    const updateData = {
+      status: procurementStatus,
+      procurementStatus,
+      processedBy: req.user.id,
+      procurementNotes,
+      supplierName,
+      supplierContact,
+      quotationAmount,
+      purchaseOrderNumber,
+      expectedDeliveryDate: expectedDeliveryDate || null,
+    };
+
+    if (procurementStatus === 'procurement_in_progress') {
+      updateData.procurementDate = new Date();
+    }
+    if (procurementStatus === 'delivered') {
+      updateData.actualDeliveryDate = actualDeliveryDate || new Date();
+    }
+
+    await request.update(updateData);
+
+    // Notify property officers and QA when delivered
+    try {
+      const processorName = `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim();
+      const statusLabels = {
+        procurement_in_progress: 'In Progress',
+        purchased: 'Purchased',
+        delivered: 'Delivered'
+      };
+
+      if (procurementStatus === 'delivered') {
+        // Notify property officers
+        const propertyOfficers = await db.User.findAll({ where: { role: 'property_officer', isActive: true }, attributes: ['id'] });
+        if (propertyOfficers.length) {
+          await createNotification({
+            userIds: propertyOfficers.map(u => u.id),
+            title: 'Asset Delivered — Ready for QA',
+            message: `"${request.itemName}" has been delivered by Purchase Dept. Please complete the request to trigger QA inspection.`,
+            type: 'request',
+            relatedId: request.id
+          });
+        }
+        // Notify QA officers
+        const qaOfficers = await db.User.findAll({ where: { role: 'quality_assurance', isActive: true }, attributes: ['id'] });
+        if (qaOfficers.length) {
+          await createNotification({
+            userIds: qaOfficers.map(u => u.id),
+            title: 'Asset Incoming for QA',
+            message: `"${request.itemName}" has been delivered and will soon be ready for quality inspection.`,
+            type: 'general',
+            relatedId: request.id
+          });
+        }
+      }
+
+      // Always notify the requester
+      await createNotification({
+        userIds: request.requestedBy,
+        title: `Procurement Update: ${statusLabels[procurementStatus]}`,
+        message: `Your request for "${request.itemName}" is now ${statusLabels[procurementStatus].toLowerCase()}.`,
+        type: 'request',
+        relatedId: request.id
+      });
+    } catch (notifError) {
+      console.error('Notification error:', notifError);
+    }
+
+    // Audit log
+    try {
+      await db.AuditLog.create({
+        userId: req.user.id,
+        action: `PROCUREMENT_${procurementStatus.toUpperCase()}`,
+        entityType: 'Request',
+        entityId: request.id,
+        details: { procurementStatus, supplierName, purchaseOrderNumber }
+      });
+    } catch (auditError) {
+      console.error('Audit log error:', auditError);
+    }
+
+    const updatedRequest = await db.Request.findByPk(id, {
+      include: [
+        { model: db.User, as: 'requester', attributes: ['id', 'firstName', 'middleName', 'lastName', 'workUnit'] },
+        { model: db.User, as: 'processor', attributes: ['id', 'firstName', 'middleName', 'lastName'] }
+      ]
+    });
+
+    res.status(200).json({ success: true, message: `Procurement status updated to ${procurementStatus}`, data: updatedRequest });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getRequests,
   getRequestById,
@@ -663,5 +842,7 @@ module.exports = {
   approveRequest,
   rejectRequest,
   completeRequest,
-  cancelRequest
+  cancelRequest,
+  processProcurement,
+  getProcurementRequests
 };
