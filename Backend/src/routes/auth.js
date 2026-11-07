@@ -7,7 +7,10 @@ const {
   login,
   getCurrentUser,
   logout,
-  changePassword
+  changePassword,
+  requestPasswordReset,
+  verifyResetCode,
+  resetPassword
 } = require('../controllers/authController');
 
 // @route   POST /api/auth/login
@@ -56,6 +59,81 @@ router.put(
   ],
   validate,
   changePassword
+);
+
+// @route   POST /api/auth/forgot-password
+// @desc    Request password reset (send verification code)
+// @access  Public
+router.post(
+  '/forgot-password',
+  [
+    body('email')
+      .trim()
+      .notEmpty()
+      .withMessage('Email is required')
+      .isEmail()
+      .withMessage('Please provide a valid email address')
+      .normalizeEmail()
+  ],
+  validate,
+  requestPasswordReset
+);
+
+// @route   POST /api/auth/verify-reset-code
+// @desc    Verify password reset code
+// @access  Public
+router.post(
+  '/verify-reset-code',
+  [
+    body('email')
+      .trim()
+      .notEmpty()
+      .withMessage('Email is required')
+      .isEmail()
+      .withMessage('Please provide a valid email address')
+      .normalizeEmail(),
+    body('code')
+      .trim()
+      .notEmpty()
+      .withMessage('Verification code is required')
+      .isLength({ min: 6, max: 6 })
+      .withMessage('Code must be 6 digits')
+      .isNumeric()
+      .withMessage('Code must contain only numbers')
+  ],
+  validate,
+  verifyResetCode
+);
+
+// @route   POST /api/auth/reset-password
+// @desc    Reset password with verified code
+// @access  Public
+router.post(
+  '/reset-password',
+  [
+    body('email')
+      .trim()
+      .notEmpty()
+      .withMessage('Email is required')
+      .isEmail()
+      .withMessage('Please provide a valid email address')
+      .normalizeEmail(),
+    body('code')
+      .trim()
+      .notEmpty()
+      .withMessage('Verification code is required')
+      .isLength({ min: 6, max: 6 })
+      .withMessage('Code must be 6 digits')
+      .isNumeric()
+      .withMessage('Code must contain only numbers'),
+    body('newPassword')
+      .notEmpty()
+      .withMessage('New password is required')
+      .isLength({ min: 6 })
+      .withMessage('Password must be at least 6 characters long')
+  ],
+  validate,
+  resetPassword
 );
 
 module.exports = router;

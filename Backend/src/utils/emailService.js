@@ -30,7 +30,7 @@ const createTransporter = () => {
     console.warn('Email credentials not configured. Email notifications will be skipped.');
     return null;
   }
-  return nodemailer.createTransporter(emailConfig);
+  return nodemailer.createTransport(emailConfig);
 };
 
 // Email template wrapper with university branding
@@ -219,6 +219,99 @@ const notifyAssetUnassigned = async (asset, previousUser, unassignedBy) => {
   await sendEmail(previousUser.email, template);
 };
 
+// Password Reset Email
+const sendPasswordResetCode = async (email, code, userName, expiryMinutes = 10) => {
+  const content = `
+    <div style="text-align: center;">
+      <p style="font-size: 16px; color: #374151; margin-bottom: 10px;">
+        Hello <strong>${userName}</strong>,
+      </p>
+      <p style="font-size: 14px; color: #6b7280; margin-bottom: 30px;">
+        We received a request to reset your password for the Property Management System.
+      </p>
+      
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 30px; margin: 30px 0;">
+        <p style="color: white; font-size: 14px; margin: 0 0 15px 0; font-weight: 500;">
+          Your verification code is:
+        </p>
+        <div style="background-color: white; border-radius: 8px; padding: 20px; display: inline-block;">
+          <p style="font-size: 36px; font-weight: bold; letter-spacing: 8px; margin: 0; color: #667eea; font-family: 'Courier New', monospace;">
+            ${code}
+          </p>
+        </div>
+        <p style="color: rgba(255,255,255,0.9); font-size: 13px; margin: 15px 0 0 0;">
+          ⏱️ This code will expire in <strong>${expiryMinutes} minutes</strong>
+        </p>
+      </div>
+
+      <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 25px 0; text-align: left;">
+        <p style="margin: 0; color: #92400e; font-size: 13px;">
+          <strong>⚠️ Security Notice:</strong><br>
+          • Do not share this code with anyone<br>
+          • ${UNIVERSITY_CONFIG.name} staff will never ask for this code<br>
+          • If you didn't request this reset, please ignore this email
+        </p>
+      </div>
+
+      <p style="font-size: 13px; color: #6b7280; margin-top: 25px;">
+        If you're having trouble resetting your password, please contact the IT Help Desk.
+      </p>
+    </div>
+  `;
+
+  const template = {
+    subject: `[${UNIVERSITY_CONFIG.shortName} PMS] Password Reset Code`,
+    html: createEmailTemplate(content, '🔐 Password Reset Request')
+  };
+
+  return await sendEmail(email, template);
+};
+
+// Password Reset Success Confirmation
+const sendPasswordResetConfirmation = async (email, userName) => {
+  const content = `
+    <div style="text-align: center;">
+      <div style="background-color: #d1fae5; border-radius: 50%; width: 80px; height: 80px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+        <span style="font-size: 40px;">✅</span>
+      </div>
+      
+      <p style="font-size: 16px; color: #374151; margin-bottom: 10px;">
+        Hello <strong>${userName}</strong>,
+      </p>
+      
+      <p style="font-size: 14px; color: #6b7280; margin-bottom: 20px;">
+        Your password has been successfully reset.
+      </p>
+
+      <div style="background-color: #f0fdf4; border: 2px solid #86efac; border-radius: 8px; padding: 20px; margin: 25px 0;">
+        <p style="margin: 0; color: #166534; font-size: 14px;">
+          <strong>✓ Password Changed Successfully</strong><br>
+          <span style="font-size: 13px;">You can now log in with your new password.</span>
+        </p>
+      </div>
+
+      <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; margin: 25px 0; text-align: left;">
+        <p style="margin: 0; color: #991b1b; font-size: 13px;">
+          <strong>⚠️ Didn't make this change?</strong><br>
+          If you did not reset your password, please contact the IT Help Desk immediately at ${UNIVERSITY_CONFIG.phone} or ${UNIVERSITY_CONFIG.email}.
+        </p>
+      </div>
+
+      <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/login" 
+         style="display: inline-block; background-color: ${UNIVERSITY_CONFIG.primaryColor}; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: 500; margin-top: 20px;">
+        Go to Login Page
+      </a>
+    </div>
+  `;
+
+  const template = {
+    subject: `[${UNIVERSITY_CONFIG.shortName} PMS] Password Reset Successful`,
+    html: createEmailTemplate(content, '✅ Password Reset Successful')
+  };
+
+  return await sendEmail(email, template);
+};
+
 module.exports = {
   sendEmail,
   notifyTransferInitiated,
@@ -230,5 +323,7 @@ module.exports = {
   notifyRequestRejected,
   notifyRequestCompleted,
   notifyAssetAssigned,
-  notifyAssetUnassigned
+  notifyAssetUnassigned,
+  sendPasswordResetCode,
+  sendPasswordResetConfirmation
 };

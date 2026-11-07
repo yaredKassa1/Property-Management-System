@@ -54,6 +54,7 @@ module.exports = (sequelize, DataTypes) => {
         'procurement_in_progress',
         'purchased',
         'delivered',
+        'item_ready',
         'completed',
         'cancelled'
       ),

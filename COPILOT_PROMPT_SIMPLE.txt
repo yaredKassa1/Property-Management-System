@@ -1,0 +1,123 @@
+Create a professional user manual Section 1 (System Login) for the Woldia University Durable Property Management System (WDUPMS).
+
+LOGIN PAGE DETAILS:
+- Title: "Welcome Back - Sign in to access your account"
+- Role selector dropdown with options: Staff, Administrator, Property Officer, Vice President, Approval Authority, Purchase Department, Quality Assurance
+- Username field with user icon
+- Password field with lock icon and show/hide toggle
+- "Remember me" checkbox
+- "Forgot password?" link
+- Purple "Sign In" button
+- "Need help? Contact administrator" link
+
+INCLUDE THESE SUBSECTIONS:
+
+1.1 Accessing the System
+- URL: http://localhost:3000
+- Browser requirements: Chrome, Firefox, Edge, Safari
+- Screen resolution: minimum 1366x768
+
+1.2 Login Process (Step-by-Step)
+Step 1: Select Your Role from dropdown
+- List all 7 roles with brief descriptions
+- Note: System auto-detects role but manual selection available
+
+Step 2: Enter Your Username
+- Case-sensitive
+- No spaces
+- Examples: admin, staff1, property
+
+Step 3: Enter Your Password
+- Case-sensitive
+- Use eye icon to show/hide
+- Check Caps Lock
+
+Step 4: Optional - Check "Remember me"
+- Only on personal devices
+- Not for shared computers
+
+Step 5: Click "Sign In"
+- System verifies credentials
+- Redirects to role-specific dashboard
+
+1.3 Role-Based Dashboard Redirection
+Explain where each role goes after login:
+- Administrator → Admin Dashboard (full system access)
+- Property Officer → Property Management Dashboard
+- Staff → Staff Dashboard (my assets, requests)
+- Vice President → VP Dashboard (approvals)
+- Approval Authority → Approval Dashboard
+- Purchase Department → Procurement Dashboard
+- Quality Assurance → QA Dashboard
+
+1.4 First-Time Login
+- Default credentials from admin
+- Password change prompt
+- Profile completion
+- System tutorial
+
+1.5 Troubleshooting Login Issues
+Create a table with columns: Issue | Possible Cause | Solution
+Include:
+- Invalid username/password
+- Account inactive
+- Role not assigned
+- Page not loading
+- Browser compatibility
+
+1.6 Forgot Password
+Step-by-step password recovery:
+1. Click "Forgot password?" link
+2. Enter registered email
+3. Check email for reset link (valid 24 hours)
+4. Enter new password
+5. Confirm password
+6. Reset and login
+
+Password Requirements:
+- Minimum 8 characters
+- One uppercase, one lowercase
+- One number
+- One special character (recommended)
+
+1.7 Need Help?
+- Contact administrator link
+- Email: admin@woldia.edu.et
+- Support hours: Monday-Friday, 8 AM - 5 PM
+
+1.8 Security Best Practices
+- Never share credentials
+- Use strong passwords
+- Change password every 90 days
+- Always log out
+- Report suspicious activity
+
+1.9 Session Management
+- 30-minute inactivity timeout
+- 5-minute warning before expiration
+- "Extend Session" option
+- Unsaved work may be lost
+
+1.10 Multi-Device Access
+- Multiple device support
+- One active session per user
+- New login ends previous session
+- Mobile responsive design
+
+FORMAT REQUIREMENTS:
+- Use clear headings and numbered steps
+- Add [SCREENSHOT PLACEHOLDER: description] where images should go
+- Use tables for troubleshooting
+- Include ⚠️ WARNING boxes for security
+- Include 💡 TIP boxes for helpful hints
+- Bold UI elements like **Sign In** button
+- Professional, clear language
+- Target audience: University staff with basic computer skills
+
+DOCUMENT HEADER:
+WOLDIA UNIVERSITY
+DURABLE PROPERTY MANAGEMENT SYSTEM (WDUPMS)
+USER MANUAL - VERSION 1.0.0
+SECTION 1: SYSTEM LOGIN
+
+Generate the complete, detailed Section 1 now with all subsections following professional technical writing standards.

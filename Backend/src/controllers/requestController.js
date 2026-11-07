@@ -129,6 +129,33 @@ const getRequestById = async (req, res, next) => {
           model: db.User,
           as: 'approver',
           attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'role']
+        },
+        {
+          model: db.ProcurementWorkflow,
+          as: 'procurementWorkflow',
+          required: false,
+          attributes: [
+            'id', 'currentState', 'workflowType', 'permittedAmount',
+            'approvalAuthorityId', 'approvalAuthorityDecision', 'approvalAuthorityComments',
+            'approvalAuthorityTimestamp', 'approvalAuthoritySignature',
+            'vpId', 'vpDecision', 'vpComments', 'vpTimestamp', 'vpSignature',
+            'qaDecision', 'qaComments', 'qaTimestamp',
+            'itemProcuredAt', 'completedAt'
+          ],
+          include: [
+            {
+              model: db.User,
+              as: 'approvalAuthority',
+              required: false,
+              attributes: ['id', 'firstName', 'middleName', 'lastName', 'role']
+            },
+            {
+              model: db.User,
+              as: 'vicePresident',
+              required: false,
+              attributes: ['id', 'firstName', 'middleName', 'lastName', 'role']
+            }
+          ]
         }
       ]
     });

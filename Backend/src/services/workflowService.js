@@ -13,7 +13,7 @@ const VALID_TRANSITIONS = {
   'pending_property_officer':    ['completed', 'purchase_notification_sent'],
   'purchase_notification_sent':  ['pending_qa_inspection'],
   'pending_qa_inspection':       ['qa_approved', 'qa_rejected'],
-  'qa_rejected':                 ['pending_qa_inspection'],
+  'qa_rejected':                 ['pending_qa_inspection'],  // re-procured → back to QA
   'qa_approved':                 ['item_ready'],
   'item_ready':                  ['completed'],
   'completed':                   [],
@@ -71,7 +71,7 @@ class WorkflowService {
    * @returns {Promise<Object>} Updated workflow
    */
   async processApproval(workflowId, action, transaction) {
-    const { actorId, actorRole, decision, comments, permittedAmount } = action;
+    const { actorId, actorRole, decision, comments, permittedAmount, signature } = action;
 
     const workflow = await ProcurementWorkflow.findByPk(workflowId, { transaction });
     
@@ -98,6 +98,7 @@ class WorkflowService {
         updateData.approvalAuthorityDecision = decision;
         updateData.approvalAuthorityComments = comments;
         updateData.approvalAuthorityTimestamp = new Date();
+        if (signature) updateData.approvalAuthoritySignature = signature;
         if (permittedAmount !== undefined && permittedAmount !== null) {
           updateData.permittedAmount = permittedAmount;
         }
@@ -113,6 +114,11 @@ class WorkflowService {
         updateData.vpDecision = decision;
         updateData.vpComments = comments;
         updateData.vpTimestamp = new Date();
+        if (signature) updateData.vpSignature = signature;
+        // VP can override the permitted amount set by AA
+        if (permittedAmount !== undefined && permittedAmount !== null) {
+          updateData.permittedAmount = permittedAmount;
+        }
         break;
 
       default:
@@ -193,7 +199,7 @@ class WorkflowService {
         break;
 
       case 'item_procured':
-        if (workflow.currentState !== 'purchase_notification_sent') {
+        if (workflow.currentState !== 'purchase_notification_sent' && workflow.currentState !== 'qa_rejected') {
           throw new Error('Invalid state for item procurement');
         }
         nextState = 'pending_qa_inspection';
@@ -312,8 +318,12 @@ class WorkflowService {
   async createAuditLog(logData) {
     const { transaction, entityType, entityId, action, actorId, actorRole, previousState, newState, metadata } = logData;
 
+    // Only set userId if actorId is a valid UUID (not 'system' or other strings)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const userId = actorId && uuidRegex.test(actorId) ? actorId : null;
+
     return await AuditLog.create({
-      userId: actorId !== 'system' ? actorId : null,
+      userId,
       action,
       entityType,
       entityId,

@@ -24,21 +24,24 @@ router.post('/:id/approve',
     param('id').isUUID(),
     body('decision').isIn(['approve', 'reject']).withMessage('Decision must be approve or reject'),
     body('comments').optional().trim(),
-    body('permittedAmount').optional().isInt({ min: 1 })
+    body('permittedAmount').optional().isInt({ min: 1 }),
+    body('signature').optional().trim()
   ],
   validate,
   async (req, res, next) => {
     try {
-      const { decision, comments } = req.body;
+      const { decision, comments, signature } = req.body;
+      const permittedAmount = req.body.permittedAmount ? parseInt(req.body.permittedAmount) : undefined;
       const workflow = await workflowService.getWorkflowStatus(req.params.id);
       let result;
       if (workflow.currentState === 'pending_approval') {
         result = await approvalHandlers.handleApprovalAuthorityAction(req.params.id, {
-          actorId: req.user.id, decision, comments,
-          permittedAmount: req.body.permittedAmount ? parseInt(req.body.permittedAmount) : undefined
+          actorId: req.user.id, decision, comments, permittedAmount, signature
         });
       } else if (workflow.currentState === 'pending_vp_approval') {
-        result = await approvalHandlers.handleVPAction(req.params.id, { actorId: req.user.id, decision, comments });
+        result = await approvalHandlers.handleVPAction(req.params.id, {
+          actorId: req.user.id, decision, comments, permittedAmount, signature
+        });
       } else {
         return res.status(400).json({ success: false, message: `Cannot approve in current state: ${workflow.currentState}` });
       }

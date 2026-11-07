@@ -175,14 +175,14 @@ class ApiClient {
 
   // Procurement Workflows
   async getWorkflow(id: string) { return this.request(`/workflows/${id}`); }
-  async approveWorkflow(id: string, decision: 'approve' | 'reject', comments?: string, permittedAmount?: number) {
-    return this.request(`/workflows/${id}/approve`, { method: 'POST', body: JSON.stringify({ decision, comments, permittedAmount }) });
+  async approveWorkflow(id: string, decision: 'approve' | 'reject', comments?: string, permittedAmount?: number, signature?: string) {
+    return this.request(`/workflows/${id}/approve`, { method: 'POST', body: JSON.stringify({ decision, comments, permittedAmount, signature }) });
   }
   async propertyOfficerComplete(id: string) {
     return this.request(`/workflows/${id}/property-officer-complete`, { method: 'POST' });
   }
   async markProcured(id: string, procurementDetails?: any) {
-    return this.request(`/workflows/${id}/mark-procured`, { method: 'POST', body: JSON.stringify({ procurementDetails }) });
+    return this.request(`/workflows/${id}/mark-procured`, { method: 'POST', body: JSON.stringify({ procurementDetails: procurementDetails || {} }) });
   }
   async qaInspect(id: string, decision: 'approve' | 'reject', comments?: string, inspectionDetails?: any) {
     const payload: any = { decision };

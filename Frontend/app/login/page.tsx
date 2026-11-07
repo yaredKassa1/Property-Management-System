@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { UserRole } from '@/lib/types';
 import { setAuthToken, setUser, isAuthenticated, acquireNavigationLock, releaseNavigationLock } from '@/lib/auth';
 import { api } from '@/lib/api';
@@ -51,17 +52,6 @@ export default function LoginPage() {
     const timer = setTimeout(checkAuth, 50);
     return () => clearTimeout(timer);
   }, [router]);
-
-  const roleOptions = [
-    { value: 'administrator', label: 'Administrator', icon: '🛡️', color: 'purple' },
-    { value: 'vice_president', label: 'Vice President', icon: '🎓', color: 'blue' },
-    { value: 'property_officer', label: 'Property Officer', icon: '🗂️', color: 'green' },
-    { value: 'approval_authority', label: 'Approval Authority', icon: '🧾', color: 'yellow' },
-    { value: 'purchase_department', label: 'Purchase Department', icon: '🛒', color: 'red' },
-    { value: 'quality_assurance', label: 'Quality Assurance', icon: '🧪', color: 'indigo' },
-    { value: 'staff', label: 'Staff', icon: '👤', color: 'gray' },
-  ];
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -111,7 +101,7 @@ export default function LoginPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1E9FE8]"></div>
           <p className="text-gray-500">Loading...</p>
         </div>
       </div>
@@ -185,18 +175,18 @@ export default function LoginPage() {
       </div>
 
       {/* Left Side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#1578B8] via-[#1E9FE8] to-[#5BC0EB] relative overflow-hidden">
         <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-0 -left-4 w-96 h-96 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
-          <div className="absolute top-0 -right-4 w-96 h-96 bg-yellow-300 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
-          <div className="absolute -bottom-8 left-20 w-96 h-96 bg-pink-300 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000"></div>
+          <div className="absolute top-0 -left-4 w-96 h-96 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
+          <div className="absolute top-0 -right-4 w-96 h-96 bg-cyan-300 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
+          <div className="absolute -bottom-8 left-20 w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000"></div>
         </div>
 
         <div className="relative z-10 flex flex-col items-center justify-center w-full p-12 text-white">
           <div className="text-center animate-fade-in-up">
             <div className="mx-auto mb-6 flex h-40 w-40 items-center justify-center transform hover:scale-105 transition-transform duration-300">
               <img
-                src="/woldia-logo.jpg"
+                src="/removebgimg.png"
                 alt="Woldia University logo"
                 className="h-full w-full object-contain drop-shadow-2xl"
               />
@@ -240,35 +230,10 @@ export default function LoginPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Role */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Select Your Role
-                </label>
-                <div className="relative">
-                  <select
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
-                    className="w-full px-4 py-3.5 pr-10 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-800 font-medium appearance-none cursor-pointer transition-all duration-200 focus:outline-none focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
-                  >
-                    {roleOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.icon} {option.label}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
               {/* Username */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Username
+                  {t('username_label')}
                 </label>
                 <div className="relative">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
@@ -281,7 +246,7 @@ export default function LoginPage() {
                     required
                     value={formData.username}
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    placeholder="Enter your username"
+                    placeholder={t('enter_your_username')}
                     className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 transition-all duration-200 focus:outline-none focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
                   />
                 </div>
@@ -290,7 +255,7 @@ export default function LoginPage() {
               {/* Password */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Password
+                  {t('password_label')}
                 </label>
                 <div className="relative">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
@@ -303,7 +268,7 @@ export default function LoginPage() {
                     required
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    placeholder="Enter your password"
+                    placeholder={t('enter_your_password')}
                     className="w-full pl-12 pr-12 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 transition-all duration-200 focus:outline-none focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
                   />
                   <button
@@ -328,11 +293,11 @@ export default function LoginPage() {
               <div className="flex items-center justify-between text-sm">
                 <label className="flex items-center gap-2 cursor-pointer group">
                   <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
-                  <span className="text-gray-600 group-hover:text-gray-800 transition-colors">Remember me</span>
+                  <span className="text-gray-600 group-hover:text-gray-800 transition-colors">{t('remember_me')}</span>
                 </label>
-                <button type="button" className="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors">
-                  Forgot password?
-                </button>
+                <Link href="/forgot-password" className="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors">
+                  {t('forgot_password')}
+                </Link>
               </div>
 
               {error && (
@@ -347,7 +312,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
+                className="w-full bg-gradient-to-r from-[#1578B8] to-[#1E9FE8] hover:from-[#1E9FE8] hover:to-[#5BC0EB] text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
@@ -355,11 +320,11 @@ export default function LoginPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    <span>Signing in...</span>
+                    <span>{t('signing_in')}</span>
                   </>
                 ) : (
                   <>
-                    <span>Sign In</span>
+                    <span>{t('sign_in')}</span>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                     </svg>
@@ -370,7 +335,7 @@ export default function LoginPage() {
 
             <div className="mt-6 pt-6 border-t border-gray-200 text-center">
               <p className="text-sm text-gray-600">
-                Need help? <button className="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors">Contact administrator</button>
+                {t('need_help')} <button className="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors">{t('contact_administrator')}</button>
               </p>
             </div>
           </div>

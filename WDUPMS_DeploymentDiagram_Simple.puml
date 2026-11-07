@@ -1,0 +1,53 @@
+@startuml WDUPMS_Deployment_Simple
+
+' ============================================
+' WOLDIA UNIVERSITY PROPERTY MANAGEMENT SYSTEM
+' Simple Deployment Diagram (3-Tier)
+' Figure 4.2: Hardware/Software Deployment Architecture
+' ============================================
+
+skinparam node {
+    BackgroundColor #E3F2FD
+    BorderColor #1976D2
+    BorderThickness 3
+    FontSize 13
+    FontStyle bold
+    Shadowing true
+}
+
+skinparam component {
+    BackgroundColor #FFFFFF
+    BorderColor #616161
+    FontSize 10
+}
+
+' ============================================
+' THREE-TIER ARCHITECTURE
+' ============================================
+
+node "CLIENT WORKSTATION (Node 1)" as client #E3F2FD {
+    component "• Web Browser" as browser
+    component "• Next.js Frontend (React UI Components)" as frontend
+    component "• JWT Token Storage" as jwt
+}
+
+node "APPLICATION SERVER (Node 2)" as appServer #F5F5F5 {
+    component "• Node.js + Express.js" as nodejs
+    component "• 9 Business Subsystems" as subsystems
+    component "• Supporting Services (JWT, Email, Scheduler)" as services
+    component "• Reporting & Dashboard (React only)" as reporting
+}
+
+node "DATABASE SERVER (Node 3)" as dbServer #C8E6C9 {
+    component "• PostgreSQL 8.11.3+" as postgres
+    component "• 11 Tables with Indexes and Constraints" as tables
+}
+
+' ============================================
+' CONNECTIONS
+' ============================================
+
+client -down-> appServer : "HTTPS / REST API"
+appServer -down-> dbServer : "PostgreSQL Protocol"
+
+@enduml

@@ -8,8 +8,7 @@ module.exports = (sequelize, DataTypes) => {
     assetId: {
       type: DataTypes.STRING(50),
       allowNull: false,
-      unique: true,
-      comment: 'Unique asset identifier (e.g., WU-LAP-001)'
+      unique: true
     },
     name: {
       type: DataTypes.STRING(200),
@@ -92,8 +91,7 @@ module.exports = (sequelize, DataTypes) => {
     tagNumber: {
       type: DataTypes.STRING(50),
       allowNull: true,
-      unique: true,
-      comment: 'Auto-generated tag number e.g. WDU2167 for purchased, WU27163 for donation'
+      unique: true
     },
     itemCategory: {
       type: DataTypes.STRING(100),
