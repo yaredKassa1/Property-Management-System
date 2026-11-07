@@ -1,0 +1,52 @@
+4.5.5 Access Control and Security
+
+Security is a fundamental design consideration of the WDUPMS. The system implements Role-Based Access Control (RBAC) to ensure users can only perform actions authorized by their assigned roles.
+
+Role Hierarchy (7 Levels):
+- Administrator: System-level management, user administration, full access
+- Vice President: High-level approvals for procurement workflows
+- Property Officer: Asset management, transfer completion, return processing
+- Approval Authority: Request and transfer approval/rejection
+- Purchase Department: Procurement processing and supplier management
+- Quality Assurance: Asset inspection and condition assessment
+- Staff: Request submission, asset viewing, return initiation
+
+Security Mechanisms:
+- Authentication: Secure login using username and password with bcrypt hashing (10 salt rounds)
+- Authorization: JWT-based token validation for each API request (7-day expiration)
+- Session Management: Stateless token-based sessions with automatic expiration
+- Password Security: Minimum 6 characters, hashed before storage, never transmitted in plain text
+- API Security: Helmet.js security headers, CORS configuration, rate limiting (100 requests per 15 minutes)
+- Audit Logging: Comprehensive logging of all sensitive operations (approvals, transfers, withdrawals, user actions) with IP address and user agent tracking
+- Input Validation: Express-validator middleware for all user inputs
+
+These measures collectively ensure confidentiality, integrity, and accountability of university property data.
+
+
+4.5.6 Boundary Conditions
+
+Boundary conditions define the operational and technical limits within which the WDUPMS operates.
+
+System Scope:
+- Manages university-owned fixed and fixed-consumable assets only
+- Excludes procurement bidding, payment processing, and financial transactions
+- No integration with external systems (finance, HR, student information systems)
+
+User Access:
+- Access restricted to authenticated and authorized university personnel
+- Actions limited by assigned role permissions
+- No public or anonymous access
+
+Technical Constraints:
+- Requires network connectivity (internet or intranet)
+- Web-based application accessible via modern browsers (Chrome, Firefox, Edge, Safari)
+- No native mobile application (responsive web design for mobile browsers)
+- User interface provided in English only
+
+Operational Requirements:
+- All asset transactions follow predefined approval workflows (Model 19, Model 20, Model 22 forms)
+- Physical inspection mandatory during asset registration, procurement receipt, and return processing
+- Digital signatures required for transfers (three-party: transferor, recipient, property officer)
+- Audit trail maintained for all transactions
+
+These boundaries ensure controlled system operation, compliance with university policies, and reduced risk of misuse.

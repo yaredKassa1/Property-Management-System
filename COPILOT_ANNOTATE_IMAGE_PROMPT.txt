@@ -1,0 +1,28 @@
+Annotate this login page screenshot with arrows and labels for a user manual diagram.
+
+Add these numbered annotations:
+
+1️⃣ Point to "Select Your Role" dropdown → Label: "STEP 1: Select your role"
+
+2️⃣ Point to Username field → Label: "STEP 2: Enter username"
+
+3️⃣ Point to Password field → Label: "STEP 3: Enter password"
+
+4️⃣ Point to eye icon → Label: "Show/hide password"
+
+5️⃣ Point to "Remember me" checkbox → Label: "STEP 4: Optional - Remember login"
+
+6️⃣ Point to "Sign In" button → Label: "STEP 5: Click to login"
+
+7️⃣ Point to "Forgot password?" link → Label: "Password recovery"
+
+8️⃣ Point to "Contact administrator" link → Label: "Get help"
+
+Style:
+- Red curved arrows
+- White text boxes with black text
+- Numbered circles (1-8)
+- Professional, clean design
+- High contrast for printing
+
+Make it clear and easy to follow for a user manual.

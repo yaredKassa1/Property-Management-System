@@ -1,0 +1,28 @@
+Annotate this login screenshot with 4 clear labels. Make sure ALL text is fully visible and not cropped.
+
+Add these annotations on the RIGHT side of the screenshot:
+
+1 → Point to "Select Your Role" dropdown
+   Label: "STEP 1: Select role"
+
+2 → Point to "Username" field  
+   Label: "STEP 2: Enter username"
+
+3 → Point to "Password" field
+   Label: "STEP 3: Enter password"
+
+4 → Point to "Sign In" button
+   Label: "STEP 4: Click to login"
+
+IMPORTANT REQUIREMENTS:
+- Place ALL labels on the RIGHT side with plenty of space
+- Make the canvas WIDER to fit full text (add white space on right)
+- Use text boxes with white background and thin border
+- Ensure no text is cut off or cropped
+- Use thin red arrows (2px)
+- Small numbered circles with white numbers
+- Font: Arial 11pt, dark gray text
+- DO NOT add university logo or branding
+- DO NOT modify the original screenshot
+
+The final image should be wider than the original to accommodate the labels on the right side.

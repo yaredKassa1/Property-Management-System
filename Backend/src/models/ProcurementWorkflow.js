@@ -60,6 +60,11 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       comment: 'Timestamp of Approval Authority decision'
     },
+    approvalAuthoritySignature: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: 'Digital signature of Approval Authority'
+    },
     permittedAmount: {
       type: DataTypes.INTEGER,
       allowNull: true,
@@ -91,6 +96,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DATE,
       allowNull: true,
       comment: 'Timestamp of Vice President decision'
+    },
+    vpSignature: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: 'Digital signature of Vice President'
     },
     // ── Property Officer Stage ────────────────────────────────────────
     propertyOfficerId: {

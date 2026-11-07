@@ -81,8 +81,7 @@ module.exports = (sequelize, DataTypes) => {
     wing: {
       type: DataTypes.ENUM('academic', 'administrative'),
       allowNull: false,
-      defaultValue: 'academic',
-      comment: 'User wing: academic or administrative'
+      defaultValue: 'academic'
     },
     college: {
       type: DataTypes.STRING(100),
@@ -112,6 +111,22 @@ module.exports = (sequelize, DataTypes) => {
     lastLogin: {
       type: DataTypes.DATE,
       allowNull: true
+    },
+    resetCode: {
+      type: DataTypes.STRING(6),
+      allowNull: true,
+      comment: 'Password reset verification code (6 digits)'
+    },
+    resetCodeExpiry: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'Expiry time for reset code (10 minutes from generation)'
+    },
+    resetCodeAttempts: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      allowNull: false,
+      comment: 'Number of failed reset code attempts (max 5)'
     }
   }, {
     tableName: 'users',

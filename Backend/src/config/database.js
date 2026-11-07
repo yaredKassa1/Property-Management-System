@@ -9,6 +9,10 @@ const sequelize = new Sequelize({
   username: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || null,
   logging: process.env.NODE_ENV === 'development' ? console.log : false,
+  dialectOptions: {
+    timezone: '+00:00' // Force UTC timezone
+  },
+  timezone: '+00:00', // Store all dates in UTC
   pool: {
     max: 5,
     min: 0,

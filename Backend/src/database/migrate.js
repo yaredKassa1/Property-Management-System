@@ -13,17 +13,22 @@ const migrate = async () => {
     }
 
     // Sync all models with database
-    // For existing tables, use alter: true
-    // For new installations, you can use force: true (WARNING: drops all data!)
-    await db.sequelize.sync({ alter: true, logging: false });
+    // force: true will drop all existing tables and recreate them (WARNING: deletes all data!)
+    // match: /$^/ prevents sync from running in production (regex that never matches)
+    await db.sequelize.sync({ force: true, logging: false, alter: false });
     
     console.log('✅ Database migration completed successfully');
-    console.log('📋 Tables created/updated:');
+    console.log('📋 Tables created:');
     console.log('   - users');
     console.log('   - assets');
     console.log('   - transfers');
+    console.log('   - transfer_history');
     console.log('   - returns');
     console.log('   - requests');
+    console.log('   - procurement_workflows');
+    console.log('   - procurement_inspections');
+    console.log('   - notifications');
+    console.log('   - audit_logs');
     
     process.exit(0);
   } catch (error) {

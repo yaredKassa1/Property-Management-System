@@ -1,0 +1,46 @@
+TASK: Add simple annotation arrows to this login page screenshot for a user manual.
+
+EXPAND THE CANVAS:
+- First, expand the canvas width by adding 400px of white space on the RIGHT side
+- This ensures labels won't be cropped
+- Keep the original screenshot on the left, labels go on the right
+
+ADD 4 SIMPLE BLACK ARROWS:
+Draw thin black arrows (2px width) from right side pointing to these elements:
+
+Arrow 1 → "Select Your Role" dropdown
+   Add label: "1. Select Your Role"
+
+Arrow 2 → "Username" input field
+   Add label: "2. Enter Username"
+
+Arrow 3 → "Password" input field
+   Add label: "3. Enter Password"
+
+Arrow 4 → "Sign In" button
+   Add label: "4. Click Sign In"
+
+ARROW STYLE:
+- Color: Pure black (#000000)
+- Width: 2 pixels
+- Style: Simple straight or slightly curved lines
+- Arrowhead: Small, simple triangle
+- No shadows, no glow, no effects
+
+LABEL STYLE:
+- Font: Arial, 11pt, black text
+- Background: White rectangle with thin black border (1px)
+- Padding: 5px around text
+- Position: On the white space to the right of screenshot
+- Align labels vertically for clean appearance
+
+DO NOT:
+- Do not add logos or branding
+- Do not add decorative elements
+- Do not modify the original screenshot
+- Do not use colored arrows (only black)
+- Do not add extra text or descriptions
+- Do not crop any text
+
+RESULT:
+A clean, professional diagram suitable for a printed user manual with simple black arrows pointing to the 4 main login steps.

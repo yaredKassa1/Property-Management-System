@@ -1,0 +1,200 @@
+@startuml WDUPMS_Ultimate_Professional_Class_Diagram
+
+' ============================================
+' WOLDIA UNIVERSITY PROPERTY MANAGEMENT SYSTEM
+' Professional Class Diagram - Ultimate Layout
+' Figure 4.X: WDUPMS Class Diagram
+' ============================================
+
+!define ENTITY_COLOR #E8F5E9
+!define WORKFLOW_COLOR #E3F2FD
+!define AUDIT_COLOR #FFF3E0
+
+' Professional styling
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam nodesep 80
+skinparam ranksep 100
+skinparam class {
+    BackgroundColor White
+    BorderColor #424242
+    BorderThickness 1.5
+    ArrowColor #616161
+    ArrowThickness 1.2
+    FontName Arial
+    FontSize 11
+    AttributeFontSize 10
+    StereotypeFontSize 9
+}
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+' ============================================
+' LAYER 1: CORE ENTITIES (Top Layer)
+' ============================================
+
+class User <<Entity>> ENTITY_COLOR {
+    - id: UUID
+    - username: String
+    - email: String
+    - password: String
+    - firstName: String
+    - lastName: String
+    - role: String
+    - workUnit: String
+    - isActive: Boolean
+    ____
+    + comparePassword(): Boolean
+    + toSafeObject(): Object
+}
+
+class Asset <<Entity>> ENTITY_COLOR {
+    - id: UUID
+    - assetId: String
+    - name: String
+    - category: String
+    - serialNumber: String
+    - value: Decimal
+    - status: String
+    - condition: String
+    - location: String
+    - tagNumber: String
+}
+
+class Request <<Entity>> ENTITY_COLOR {
+    - id: UUID
+    - requestType: String
+    - itemName: String
+    - quantity: Integer
+    - status: String
+    - priority: String
+    - workUnit: String
+    - purpose: Text
+    - requestDate: Date
+}
+
+' ============================================
+' LAYER 2: TRANSACTION ENTITIES (Middle Layer)
+' ============================================
+
+class Transfer <<Entity>> ENTITY_COLOR {
+    - id: UUID
+    - status: String
+    - fromLocation: String
+    - toLocation: String
+    - reason: Text
+    - requestDate: Date
+}
+
+class Return <<Entity>> ENTITY_COLOR {
+    - id: UUID
+    - status: String
+    - returnCondition: String
+    - returnDate: Date
+    - inspectionNotes: Text
+}
+
+' ============================================
+' LAYER 3: WORKFLOW ENTITIES (Middle-Right)
+' ============================================
+
+class ProcurementWorkflow <<Workflow>> WORKFLOW_COLOR {
+    - id: UUID
+    - currentState: String
+    - workflowType: String
+    - permittedAmount: Integer
+    - completedAt: Date
+}
+
+class ProcurementInspection <<Workflow>> WORKFLOW_COLOR {
+    - id: UUID
+    - status: String
+    - assessedCondition: String
+    - inspectionDate: Date
+    - remarks: Text
+}
+
+' ============================================
+' LAYER 4: AUDIT & TRACKING (Bottom Layer)
+' ============================================
+
+class TransferHistory <<Audit>> AUDIT_COLOR {
+    - id: UUID
+    - action: String
+    - previousStatus: String
+    - newStatus: String
+    - notes: Text
+}
+
+class AuditLog <<Audit>> AUDIT_COLOR {
+    - id: UUID
+    - action: String
+    - entityType: String
+    - entityId: UUID
+    - timestamp: Date
+}
+
+class Notification <<Audit>> AUDIT_COLOR {
+    - id: UUID
+    - title: String
+    - message: Text
+    - type: String
+    - isRead: Boolean
+}
+
+' ============================================
+' RELATIONSHIPS - Strategic Organization
+' ============================================
+
+' === USER RELATIONSHIPS (Central Hub) ===
+User "1" -- "0..*" Asset : assigns >
+User "1" -- "0..*" Request : submits >
+User "1" -- "0..*" Return : returns >
+User "fromUser\n1" -- "0..*" Transfer : initiates >
+User "toUser\n1" -- "0..*" Transfer : receives >
+
+' === ASSET RELATIONSHIPS (Core Entity) ===
+Asset "1" -- "0..*" Transfer : transferred >
+Asset "1" -- "0..*" Return : returned >
+Asset "1" -- "0..*" ProcurementInspection : inspected >
+
+' === REQUEST-WORKFLOW RELATIONSHIPS ===
+Request "1" *-- "0..1" ProcurementWorkflow : follows >
+Request "1" -- "0..*" ProcurementInspection : requires >
+
+' === WORKFLOW-USER RELATIONSHIPS ===
+ProcurementWorkflow "0..*" -- "1..*" User : involves >
+
+' === COMPOSITION RELATIONSHIPS (Strong) ===
+Transfer "1" *-- "1..*" TransferHistory : tracks >
+
+' === AGGREGATION RELATIONSHIPS (Weak) ===
+User "1" o-- "0..*" Notification : receives >
+User "1" o-- "0..*" AuditLog : logs >
+
+' ============================================
+' LAYOUT OPTIMIZATION
+' ============================================
+
+' Horizontal alignment - Top layer
+User -[hidden]right- Asset
+Asset -[hidden]right- Request
+
+' Vertical flow - Core to transactions
+User -[hidden]down- Transfer
+Asset -[hidden]down- Transfer
+Request -[hidden]down- ProcurementWorkflow
+
+' Horizontal alignment - Middle layer
+Transfer -[hidden]right- Return
+Return -[hidden]right- ProcurementInspection
+
+' Vertical flow - Transactions to audit
+Transfer -[hidden]down- TransferHistory
+Return -[hidden]down- AuditLog
+
+' Horizontal alignment - Bottom layer
+TransferHistory -[hidden]right- AuditLog
+AuditLog -[hidden]right- Notification
+
+@enduml

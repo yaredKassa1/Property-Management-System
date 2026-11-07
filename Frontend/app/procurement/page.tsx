@@ -5,9 +5,17 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { Toast, ToastType } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
 import { getUser } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
+import { 
+  ArrowPathIcon, 
+  CubeIcon, 
+  ExclamationTriangleIcon,
+  CheckCircleIcon,
+  TruckIcon
+} from '@heroicons/react/24/outline';
 
 // ── Workflow-based pending requests ──────────────────────────────────────────
 
@@ -25,17 +33,46 @@ interface WorkflowRequest {
   } | null;
 }
 
+interface ProcurementFormData {
+  supplierName: string;
+  supplierContact: string;
+  quotationAmount: string;
+  purchaseOrderNumber: string;
+  procurementNotes: string;
+  procurementDate: string;
+  expectedDeliveryDate: string;
+  actualDeliveryDate: string;
+}
+
+const emptyForm = (): ProcurementFormData => ({
+  supplierName: '',
+  supplierContact: '',
+  quotationAmount: '',
+  purchaseOrderNumber: '',
+  procurementNotes: '',
+  procurementDate: new Date().toISOString().split('T')[0],
+  expectedDeliveryDate: '',
+  actualDeliveryDate: '',
+});
+
 function WorkflowProcurementSection() {
   const [items, setItems] = useState<WorkflowRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [successMsg, setSuccessMsg] = useState('');
+  const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+  const [procureTarget, setProcureTarget] = useState<WorkflowRequest | null>(null);
+  const [form, setForm] = useState<ProcurementFormData>(emptyForm());
+  const [submitting, setSubmitting] = useState(false);
+  const currentUser = getUser();
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
       const response: any = await api.getRequests({ limit: '200' });
       const all = Array.isArray(response) ? response : response.data || [];
-      setItems(all.filter((r: any) => r.procurementWorkflow?.currentState === 'purchase_notification_sent'));
+      setItems(all.filter((r: any) =>
+        r.procurementWorkflow?.currentState === 'purchase_notification_sent' ||
+        r.procurementWorkflow?.currentState === 'qa_rejected'
+      ));
     } catch (err) {
       console.error('Failed to load workflow procurement requests:', err);
     } finally {
@@ -45,16 +82,42 @@ function WorkflowProcurementSection() {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleMarkProcured = async (req: WorkflowRequest) => {
-    const supplier = prompt('Supplier name?');
-    if (!supplier) return;
+  const openForm = (req: WorkflowRequest) => {
+    setProcureTarget(req);
+    setForm(emptyForm());
+  };
+
+  const closeForm = () => {
+    setProcureTarget(null);
+    setForm(emptyForm());
+  };
+
+  const set = (field: keyof ProcurementFormData, value: string) =>
+    setForm(prev => ({ ...prev, [field]: value }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!procureTarget || !form.supplierName.trim()) return;
+    setSubmitting(true);
     try {
-      await api.markProcured(req.procurementWorkflow!.id, { supplier });
-      setSuccessMsg(`"${req.itemName}" marked as procured.`);
-      setTimeout(() => setSuccessMsg(''), 4000);
+      await api.markProcured(procureTarget.procurementWorkflow!.id, {
+        supplierName: form.supplierName.trim(),
+        supplierContact: form.supplierContact.trim() || undefined,
+        quotationAmount: form.quotationAmount ? parseFloat(form.quotationAmount) : undefined,
+        purchaseOrderNumber: form.purchaseOrderNumber.trim() || undefined,
+        procurementNotes: form.procurementNotes.trim() || undefined,
+        procurementDate: form.procurementDate || undefined,
+        expectedDeliveryDate: form.expectedDeliveryDate || undefined,
+        actualDeliveryDate: form.actualDeliveryDate || undefined,
+        processedBy: currentUser?.id,
+      });
+      setToast({ message: `"${procureTarget.itemName}" marked as procured. QA team has been notified.`, type: 'success' });
+      closeForm();
       load();
     } catch (err: any) {
-      alert('Failed to mark as procured: ' + err.message);
+      setToast({ message: `Failed: ${err.message}`, type: 'error' });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -66,18 +129,171 @@ function WorkflowProcurementSection() {
 
   return (
     <div className="space-y-3">
-      <h2 className="text-xl font-semibold text-gray-800">Pending Workflow Approvals</h2>
-      {successMsg && (
-        <div className="bg-green-50 border border-green-200 text-green-800 rounded-md px-4 py-2 text-sm">
-          ✅ {successMsg}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+      {/* Procurement Form Modal */}
+      {procureTarget && (
+        <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={closeForm} />
+          <div className="relative z-10 bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-xl">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                {procureTarget.procurementWorkflow?.currentState === 'qa_rejected' ? (
+                  <>
+                    <ArrowPathIcon className="w-5 h-5 text-blue-600" />
+                    Re-Procurement Details
+                  </>
+                ) : (
+                  <>
+                    <CubeIcon className="w-5 h-5 text-blue-600" />
+                    Procurement Details
+                  </>
+                )}
+              </h2>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Item: <span className="font-medium text-gray-800">{procureTarget.itemName}</span>
+                {procureTarget.procurementWorkflow?.permittedAmount != null && (
+                  <span className="ml-2 text-blue-600">
+                    (Approved qty: {procureTarget.procurementWorkflow.permittedAmount})
+                  </span>
+                )}
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="px-6 py-5 space-y-5">
+              {/* Processed By (read-only) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Processed By</label>
+                <input
+                  type="text"
+                  readOnly
+                  value={currentUser ? `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || currentUser.username : '—'}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Supplier Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Supplier Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={form.supplierName}
+                    onChange={e => set('supplierName', e.target.value)}
+                    placeholder="e.g., ABC Supplies Ltd"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Supplier Contact */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Supplier Contact</label>
+                  <input
+                    type="text"
+                    value={form.supplierContact}
+                    onChange={e => set('supplierContact', e.target.value)}
+                    placeholder="Phone or email"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Quotation Amount */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Quotation Amount (ETB)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.quotationAmount}
+                    onChange={e => set('quotationAmount', e.target.value)}
+                    placeholder="0.00"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* PO Number */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">PO Number</label>
+                  <input
+                    type="text"
+                    value={form.purchaseOrderNumber}
+                    onChange={e => set('purchaseOrderNumber', e.target.value)}
+                    placeholder="e.g., PO-2026-001"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Procurement Date */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Procurement Date</label>
+                  <input
+                    type="date"
+                    value={form.procurementDate}
+                    onChange={e => set('procurementDate', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Expected Delivery */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Expected Delivery Date</label>
+                  <input
+                    type="date"
+                    value={form.expectedDeliveryDate}
+                    onChange={e => set('expectedDeliveryDate', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Actual Delivery */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Actual Delivery Date</label>
+                  <input
+                    type="date"
+                    value={form.actualDeliveryDate}
+                    onChange={e => set('actualDeliveryDate', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes / Reason</label>
+                <textarea
+                  value={form.procurementNotes}
+                  onChange={e => set('procurementNotes', e.target.value)}
+                  rows={3}
+                  placeholder="Any additional notes about this procurement..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+                <Button type="button" variant="outline" onClick={closeForm} disabled={submitting}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={submitting || !form.supplierName.trim()}>
+                  {submitting ? 'Submitting...' : 'Mark as Procured'}
+                </Button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
+
+      <h2 className="text-xl font-semibold text-gray-800">Pending Workflow Procurements</h2>
       <Card>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {['Item', 'Qty', 'Permitted Amount', 'Requested By', 'Purpose', 'Actions'].map((h) => (
+                {['Item', 'Qty', 'Permitted Amount', 'Requested By', 'Status', 'Purpose', 'Actions'].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     {h}
                   </th>
@@ -85,27 +301,52 @@ function WorkflowProcurementSection() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {items.map((req) => (
-                <tr key={req.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <div className="text-sm font-medium text-gray-900">{req.itemName}</div>
-                    <div className="text-xs text-gray-400">{new Date(req.requestDate).toLocaleDateString()}</div>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{req.quantity}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">
-                    {req.procurementWorkflow?.permittedAmount != null
-                      ? `ETB ${Number(req.procurementWorkflow.permittedAmount).toLocaleString()}`
-                      : '—'}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{fullName(req.requester)}</td>
-                  <td className="px-4 py-3 text-sm text-gray-500 max-w-xs truncate">{req.purpose}</td>
-                  <td className="px-4 py-3">
-                    <Button size="sm" onClick={() => handleMarkProcured(req)}>
-                      Mark as Procured
-                    </Button>
-                  </td>
-                </tr>
-              ))}
+              {items.map((req) => {
+                const state = req.procurementWorkflow?.currentState;
+                const isRejected = state === 'qa_rejected';
+                return (
+                  <tr key={req.id} className={`hover:bg-gray-50 ${isRejected ? 'bg-red-50' : ''}`}>
+                    <td className="px-4 py-3">
+                      <div className="text-sm font-medium text-gray-900">{req.itemName}</div>
+                      <div className="text-xs text-gray-400">{new Date(req.requestDate).toLocaleDateString()}</div>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{req.quantity}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {req.procurementWorkflow?.permittedAmount != null
+                        ? `ETB ${Number(req.procurementWorkflow.permittedAmount).toLocaleString()}`
+                        : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{fullName(req.requester)}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium ${
+                        isRejected ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {isRejected ? (
+                          <>
+                            <ExclamationTriangleIcon className="w-4 h-4" />
+                            QA Rejected — Change Supplier
+                          </>
+                        ) : (
+                          <>
+                            <CubeIcon className="w-4 h-4" />
+                            Ready to Procure
+                          </>
+                        )}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-500 max-w-xs truncate">{req.purpose}</td>
+                    <td className="px-4 py-3">
+                      <Button
+                        size="sm"
+                        variant={isRejected ? 'danger' : 'primary'}
+                        onClick={() => openForm(req)}
+                      >
+                        {isRejected ? 'Re-Procure' : 'Mark as Procured'}
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -270,10 +511,16 @@ export default function ProcurementPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Procurement Management</h1>
-          <p className="text-gray-500 mt-1">Process approved purchase requests and track procurement status</p>
+        {/* Professional Header Card with Short Accent Line */}
+        <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+          <div className="p-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Procurement Management</h1>
+              {/* Short Horizontal Accent Line */}
+              <div className="h-1 w-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full mb-3"></div>
+              <p className="text-sm text-gray-600">Process approved purchase requests and track procurement status</p>
+            </div>
+          </div>
         </div>
 
         {/* Workflow-based pending procurement */}
@@ -439,9 +686,9 @@ export default function ProcurementPage() {
                     onChange={e => setProcurementStatus(e.target.value as any)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    {selectedRequest.status === 'approved' && <option value="procurement_in_progress">🔄 In Progress (Started Procurement)</option>}
-                    {['approved', 'procurement_in_progress'].includes(selectedRequest.status) && <option value="purchased">✅ Purchased (Items Bought)</option>}
-                    {['approved', 'procurement_in_progress', 'purchased'].includes(selectedRequest.status) && <option value="delivered">📦 Delivered (Ready for QA)</option>}
+                    {selectedRequest.status === 'approved' && <option value="procurement_in_progress">In Progress (Started Procurement)</option>}
+                    {['approved', 'procurement_in_progress'].includes(selectedRequest.status) && <option value="purchased">Purchased (Items Bought)</option>}
+                    {['approved', 'procurement_in_progress', 'purchased'].includes(selectedRequest.status) && <option value="delivered">Delivered (Ready for QA)</option>}
                   </select>
                 </div>
 
@@ -498,8 +745,11 @@ export default function ProcurementPage() {
                 </div>
 
                 {procurementStatus === 'delivered' && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-sm text-blue-800">
-                    📦 Marking as <strong>Delivered</strong> will notify the Property Officer to complete the request and trigger QA inspection.
+                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-sm text-blue-800 flex items-start gap-2">
+                    <TruckIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                    <span>
+                      Marking as <strong>Delivered</strong> will notify the Property Officer to complete the request and trigger QA inspection.
+                    </span>
                   </div>
                 )}
               </div>

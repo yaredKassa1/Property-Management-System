@@ -12,10 +12,11 @@ const seedData = async () => {
       process.exit(1);
     }
 
-    // Clear existing data (optional - comment out if you want to keep existing data)
+    // Clear existing data using TRUNCATE CASCADE to handle foreign keys
     console.log('🗑️  Clearing existing data...');
-    await db.Asset.destroy({ where: {}, force: true });
-    await db.User.destroy({ where: {}, force: true });
+    
+    // Use raw SQL to truncate all tables with CASCADE (using actual table names from database)
+    await db.sequelize.query('TRUNCATE TABLE "transfer_history", "notifications", "audit_logs", "procurement_inspections", "procurement_workflows", "returns", "transfers", "requests", "assets", "users" RESTART IDENTITY CASCADE;');
 
     // Create users
     console.log('👥 Creating users...');

@@ -1,0 +1,160 @@
+@startuml WDUPMS_Class_Diagram
+
+' ============================================
+' WOLDIA UNIVERSITY PROPERTY MANAGEMENT SYSTEM
+' Professional Class Diagram
+' ============================================
+
+skinparam classAttributeIconSize 0
+skinparam linetype polyline
+skinparam nodesep 60
+skinparam ranksep 100
+skinparam class {
+    BackgroundColor White
+    BorderColor Black
+    ArrowColor Black
+    FontSize 10
+}
+skinparam stereotypeCBackgroundColor LightGray
+
+left to right direction
+
+' ============================================
+' CORE DOMAIN CLASSES
+' ============================================
+
+package "User Management" {
+    class User {
+        - id: UUID
+        - username: String
+        - email: String
+        - password: String
+        - firstName: String
+        - lastName: String
+        - role: String
+        - workUnit: String
+        - isActive: Boolean
+        __
+        + comparePassword(): Boolean
+        + toSafeObject(): Object
+    }
+}
+
+package "Asset Management" {
+    class Asset {
+        - id: UUID
+        - assetId: String
+        - name: String
+        - category: String
+        - serialNumber: String
+        - value: Decimal
+        - status: String
+        - condition: String
+        - location: String
+        - tagNumber: String
+    }
+}
+
+package "Request & Workflow" {
+    class Request {
+        - id: UUID
+        - requestType: String
+        - itemName: String
+        - quantity: Integer
+        - status: String
+        - priority: String
+        - workUnit: String
+        - purpose: Text
+        - requestDate: Date
+    }
+    
+    class ProcurementWorkflow {
+        - id: UUID
+        - currentState: String
+        - workflowType: String
+        - permittedAmount: Integer
+        - completedAt: Date
+    }
+    
+    class ProcurementInspection {
+        - id: UUID
+        - status: String
+        - assessedCondition: String
+        - inspectionDate: Date
+        - remarks: Text
+    }
+}
+
+package "Transfer & Return" {
+    class Transfer {
+        - id: UUID
+        - status: String
+        - fromLocation: String
+        - toLocation: String
+        - reason: Text
+        - requestDate: Date
+    }
+    
+    class Return {
+        - id: UUID
+        - status: String
+        - returnCondition: String
+        - returnDate: Date
+        - inspectionNotes: Text
+    }
+    
+    class TransferHistory {
+        - id: UUID
+        - action: String
+        - previousStatus: String
+        - newStatus: String
+        - notes: Text
+    }
+}
+
+package "Audit & Notification" {
+    class AuditLog {
+        - id: UUID
+        - action: String
+        - entityType: String
+        - entityId: UUID
+        - timestamp: Date
+    }
+    
+    class Notification {
+        - id: UUID
+        - title: String
+        - message: Text
+        - type: String
+        - isRead: Boolean
+    }
+}
+
+' ============================================
+' ASSOCIATIONS (UML Standard Notation)
+' ============================================
+
+' User Associations
+User "1" -- "0..*" Asset : assigns >
+User "1" -- "0..*" Request : submits >
+User "1" -- "0..*" Transfer : initiates >
+User "1" -- "0..*" Return : returns >
+User "1" -- "0..*" Notification : receives >
+User "1" -- "0..*" AuditLog : logs >
+
+' Asset Associations
+Asset "1" -- "0..*" Transfer : transferred in >
+Asset "1" -- "0..*" Return : returned as >
+Asset "1" -- "0..*" ProcurementInspection : inspected >
+
+' Request Associations
+Request "1" -- "0..1" ProcurementWorkflow : follows >
+Request "1" -- "0..*" ProcurementInspection : requires >
+
+' Transfer Associations
+Transfer "1" -- "1..*" TransferHistory : tracked by >
+
+' Workflow Associations
+ProcurementWorkflow "1" -- "1..*" User : involves >
+
+@enduml

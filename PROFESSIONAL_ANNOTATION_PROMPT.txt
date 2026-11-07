@@ -1,0 +1,215 @@
+Create a professional, clean annotated diagram of the login page screenshot for a user manual. Follow these STRICT requirements:
+
+═══════════════════════════════════════════════════════════════
+
+CRITICAL RULES:
+1. DO NOT add any elements that are not in the original screenshot
+2. DO NOT add university logos, branding, or decorative elements
+3. DO NOT modify the original screenshot - only add annotations
+4. Keep the original screenshot exactly as it is
+5. Use professional technical documentation standards
+
+═══════════════════════════════════════════════════════════════
+
+ANNOTATION SPECIFICATIONS:
+
+Use ONLY these annotation elements:
+- Thin red arrows (2-3px width)
+- Small numbered circles (white numbers on red background)
+- Clean text labels in sans-serif font (Arial or Calibri, 10-11pt)
+- Minimal, professional styling
+
+═══════════════════════════════════════════════════════════════
+
+EXACT ANNOTATIONS TO ADD:
+
+1. "Welcome Back" heading
+   → Arrow: Point from right side to the heading
+   → Number: ①
+   → Label: "System title"
+   → Position: Top right area
+
+2. "Sign in to access your account" subtitle
+   → Arrow: Point from right side to the subtitle
+   → Number: ②
+   → Label: "Login instruction"
+   → Position: Below annotation 1
+
+3. "Select Your Role" dropdown field
+   → Arrow: Point from left side to the dropdown
+   → Number: ③
+   → Label: "STEP 1: Select your role from dropdown"
+   → Position: Left side, aligned with dropdown
+
+4. Dropdown arrow icon (▼)
+   → Arrow: Point from right side to the dropdown arrow
+   → Number: ④
+   → Label: "Click to expand role options"
+   → Position: Right side of dropdown
+
+5. "Username" input field
+   → Arrow: Point from left side to the username field
+   → Number: ⑤
+   → Label: "STEP 2: Enter your username (case-sensitive)"
+   → Position: Left side, aligned with username field
+
+6. User icon (👤) in username field
+   → Arrow: Small arrow from left
+   → Number: ⑥
+   → Label: "Username indicator"
+   → Position: Near the user icon
+
+7. "Password" input field
+   → Arrow: Point from left side to the password field
+   → Number: ⑦
+   → Label: "STEP 3: Enter your password (case-sensitive)"
+   → Position: Left side, aligned with password field
+
+8. Eye icon (👁) in password field
+   → Arrow: Point from right side to the eye icon
+   → Number: ⑧
+   → Label: "Click to show/hide password"
+   → Position: Right side, near eye icon
+
+9. "Remember me" checkbox
+   → Arrow: Point from bottom left to the checkbox
+   → Number: ⑨
+   → Label: "STEP 4 (Optional): Check to save login"
+   → Position: Bottom left area
+
+10. "Forgot password?" link
+    → Arrow: Point from bottom right to the link
+    → Number: ⑩
+    → Label: "Click for password recovery"
+    → Position: Bottom right area
+
+11. "Sign In" button
+    → Arrow: Large arrow from left side to the button
+    → Number: ⑪
+    → Label: "STEP 5: Click to login"
+    → Position: Left side, prominent
+    → Style: Make this arrow slightly thicker (3-4px) to emphasize
+
+12. Arrow icon (→) on Sign In button
+    → Arrow: Small arrow from right
+    → Number: ⑫
+    → Label: "Proceed indicator"
+    → Position: Right side of button
+
+13. "Need help? Contact administrator" link
+    → Arrow: Point from bottom to the link
+    → Number: ⑬
+    → Label: "Technical support link"
+    → Position: Bottom center
+
+═══════════════════════════════════════════════════════════════
+
+LAYOUT SPECIFICATIONS:
+
+Left Side Annotations (for main steps):
+- Annotations 3, 5, 7, 9, 11
+- Align vertically
+- Use consistent spacing
+
+Right Side Annotations (for helper elements):
+- Annotations 1, 2, 4, 8, 10, 12
+- Align vertically
+- Use consistent spacing
+
+Top Annotations:
+- Annotations 1, 2
+- Keep close to the top
+
+Bottom Annotations:
+- Annotations 9, 10, 13
+- Keep close to the bottom
+
+═══════════════════════════════════════════════════════════════
+
+STYLING REQUIREMENTS:
+
+Arrows:
+- Color: #DC2626 (red)
+- Width: 2-3px (except Sign In button arrow: 3-4px)
+- Style: Solid line with arrowhead
+- Curve: Gentle curves, not sharp angles
+- No shadows or effects
+
+Numbered Circles:
+- Size: 24px diameter
+- Background: #DC2626 (red)
+- Text: White, bold, 12pt
+- Border: None
+- Position: At the start of each arrow
+
+Text Labels:
+- Font: Arial or Calibri
+- Size: 10-11pt
+- Color: #1F2937 (dark gray)
+- Background: White with 80% opacity
+- Padding: 4px horizontal, 2px vertical
+- Border: 1px solid #E5E7EB (light gray)
+- No shadows
+
+═══════════════════════════════════════════════════════════════
+
+LEGEND BOX (Add in bottom left corner):
+
+┌─────────────────────────────┐
+│ LEGEND                      │
+├─────────────────────────────┤
+│ ① - ⑬  Step numbers         │
+│ →      Indicates element    │
+│ STEP X Required action      │
+│ (Optional) Optional action  │
+└─────────────────────────────┘
+
+Style:
+- Border: 1px solid #9CA3AF
+- Background: White with 90% opacity
+- Font: 9pt Arial
+- Size: Compact, not intrusive
+
+═══════════════════════════════════════════════════════════════
+
+QUALITY REQUIREMENTS:
+
+✓ High resolution (minimum 1920x1080)
+✓ Clear, readable text at 100% and 50% zoom
+✓ Professional appearance suitable for printing
+✓ No spelling errors in labels
+✓ Consistent spacing and alignment
+✓ No overlapping annotations
+✓ Arrows do not obscure UI elements
+✓ Labels are positioned outside the screenshot area when possible
+
+✗ Do NOT add logos
+✗ Do NOT add decorative elements
+✗ Do NOT modify the original screenshot colors
+✗ Do NOT add extra UI elements
+✗ Do NOT use fancy fonts or effects
+✗ Do NOT add shadows or gradients
+
+═══════════════════════════════════════════════════════════════
+
+OUTPUT FORMAT:
+
+File type: PNG with transparent background for annotations
+Resolution: 1920x1080 or higher
+Color mode: RGB
+Compression: Lossless
+
+═══════════════════════════════════════════════════════════════
+
+EXAMPLE ANNOTATION STYLE:
+
+     ③ ────────────→ [UI Element]
+        "STEP 1: Clear description"
+
+NOT like this:
+     ③ ═══════════⇒ [UI Element]
+        "✨ STEP 1: Fancy description! 🎯"
+
+═══════════════════════════════════════════════════════════════
+
+Generate a clean, professional annotated diagram following these exact specifications. The result should look like a technical manual illustration, not a marketing material.

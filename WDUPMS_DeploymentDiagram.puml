@@ -1,0 +1,169 @@
+@startuml WDUPMS_Deployment_Diagram
+
+' ============================================
+' WOLDIA UNIVERSITY PROPERTY MANAGEMENT SYSTEM
+' UML Deployment Diagram
+' Figure 4.2: Hardware/Software Deployment Architecture
+' ============================================
+
+!define NODE_COLOR #E3F2FD
+!define ARTIFACT_COLOR #FFF9C4
+!define DATABASE_COLOR #C8E6C9
+
+skinparam node {
+    BackgroundColor NODE_COLOR
+    BorderColor #1976D2
+    BorderThickness 2
+    FontSize 12
+    FontStyle bold
+}
+
+skinparam artifact {
+    BackgroundColor ARTIFACT_COLOR
+    BorderColor #F57C00
+    BorderThickness 1.5
+    FontSize 10
+}
+
+skinparam database {
+    BackgroundColor DATABASE_COLOR
+    BorderColor #388E3C
+    BorderThickness 2
+    FontSize 11
+}
+
+skinparam component {
+    BackgroundColor #FFFFFF
+    BorderColor #616161
+    BorderThickness 1
+    FontSize 10
+}
+
+' ============================================
+' CLIENT NODE
+' ============================================
+
+node "<<device>>\nClient Workstation" as client {
+    
+    artifact "Web Browser" as browser {
+        component "Chrome/Firefox/Edge" as browserApp
+    }
+    
+    artifact "Next.js Frontend" as nextjs {
+        component "React UI Components" as reactUI
+        component "State Management" as stateManagement
+        component "API Client" as apiClient
+    }
+    
+    artifact "JWT Token Storage" as jwtStorage {
+        component "LocalStorage/SessionStorage" as storage
+    }
+}
+
+' ============================================
+' APPLICATION SERVER NODE
+' ============================================
+
+node "<<server>>\nApplication Server" as appServer {
+    
+    artifact "Node.js Runtime" as nodejs {
+        component "v18.x LTS" as nodeVersion
+    }
+    
+    artifact "Express.js Framework" as express {
+        component "REST API Endpoints" as restAPI
+        component "Middleware Stack" as middleware
+    }
+    
+    artifact "Business Subsystems" as subsystems {
+        component "User Management" as userMgmt
+        component "Asset Management" as assetMgmt
+        component "Request Management" as requestMgmt
+        component "Transfer Management" as transferMgmt
+        component "Procurement Workflow" as procurementWF
+        component "Return Management" as returnMgmt
+        component "QA Management" as qaMgmt
+        component "Notification & Audit" as notificationAudit
+        component "Reporting & Dashboard" as reporting
+    }
+    
+    artifact "Supporting Services" as services {
+        component "JWT Authentication" as jwtAuth
+        component "Email Service" as emailService
+        component "File Upload Handler" as fileUpload
+    }
+    
+    artifact "Sequelize ORM" as sequelize {
+        component "Models & Associations" as models
+        component "Query Builder" as queryBuilder
+    }
+}
+
+' ============================================
+' DATABASE SERVER NODE
+' ============================================
+
+node "<<database server>>\nDatabase Server" as dbServer {
+    
+    database "PostgreSQL 8.11.3+" as postgres {
+        component "11 Tables" as tables
+        component "Indexes & Constraints" as indexes
+        component "JSONB Support" as jsonb
+    }
+}
+
+' ============================================
+' CONNECTIONS
+' ============================================
+
+client -down-> appServer : "<<HTTPS>>\nREST API\n(JSON)"
+appServer -down-> dbServer : "<<TCP/IP>>\nPostgreSQL Protocol\n(Port 5432)"
+
+' Internal connections
+browser -down-> nextjs
+nextjs -down-> jwtStorage
+nodejs -down-> express
+express -down-> subsystems
+subsystems -down-> services
+services -down-> sequelize
+sequelize -down-> postgres
+
+' ============================================
+' NOTES
+' ============================================
+
+note right of client
+  **Hardware Requirements:**
+  - Desktop/Laptop/Tablet
+  - Modern web browser
+  - Internet connection
+  
+  **Software:**
+  - No installation required
+  - Browser-based access
+end note
+
+note right of appServer
+  **Hardware Requirements:**
+  - CPU: 2+ cores
+  - RAM: 4GB minimum
+  - Storage: 20GB+
+  
+  **Software:**
+  - OS: Windows/Linux
+  - Node.js 18.x LTS
+  - Express.js 4.18.2
+end note
+
+note right of dbServer
+  **Hardware Requirements:**
+  - CPU: 2+ cores
+  - RAM: 8GB minimum
+  - Storage: 50GB+
+  
+  **Software:**
+  - PostgreSQL 8.11.3+
+  - Backup system
+end note
+
+@enduml

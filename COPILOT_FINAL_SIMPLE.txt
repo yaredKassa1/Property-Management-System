@@ -1,0 +1,19 @@
+Add 4 annotations to this login screenshot. EXPAND the canvas to the right so text is not cropped.
+
+Annotations (place on RIGHT side with full text visible):
+
+① → "STEP 1: Select role" (pointing to role dropdown)
+② → "STEP 2: Enter username" (pointing to username field)
+③ → "STEP 3: Enter password" (pointing to password field)  
+④ → "STEP 4: Click to login" (pointing to Sign In button)
+
+Style:
+- Red arrows (thin, 2px)
+- Numbered circles (red background, white numbers)
+- Text labels in white boxes with gray border
+- Arial 11pt font
+- Expand canvas width by 300px on the right for labels
+- DO NOT crop any text
+- DO NOT add logos
+
+Make sure the entire text of each label is fully visible!

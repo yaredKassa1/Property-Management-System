@@ -1,0 +1,341 @@
+TASK: Create a professional UML Class Diagram for Woldia University Property Management System (WDUPMS)
+
+IMPORTANT: Each class MUST include both attributes AND operations/methods. The current diagram only shows attributes which is unprofessional.
+
+===========================================
+CLASSES WITH ATTRIBUTES AND OPERATIONS:
+===========================================
+
+1. USER CLASS
+Attributes:
+- id: UUID
+- username: String
+- email: String
+- password: String
+- firstName: String
+- lastName: String
+- role: String (ENUM)
+- workUnit: String
+- isActive: Boolean
+- lastLogin: Date
+
+Operations:
++ comparePassword(candidatePassword: String): Boolean
++ toSafeObject(): Object
++ getFullName(): String
++ updateLastLogin(): void
++ activate(): void
++ deactivate(): void
+
+---
+
+2. ASSET CLASS
+Attributes:
+- id: UUID
+- assetId: String
+- name: String
+- category: String (ENUM: fixed, fixed_consumable)
+- serialNumber: String
+- value: Decimal
+- status: String (ENUM: available, assigned, in_transfer, under_maintenance, disposed, pending_qa)
+- condition: String (ENUM: excellent, good, fair, poor, damaged)
+- location: String
+- tagNumber: String
+- assignedTo: UUID (FK)
+- createdBy: UUID (FK)
+
+Operations:
++ create(): Asset
++ update(data: Object): Asset
++ delete(): Boolean
++ assign(userId: UUID): void
++ unassign(): void
++ transfer(toLocation: String): void
++ updateStatus(status: String): void
++ updateCondition(condition: String): void
++ getStats(): Object
++ search(criteria: Object): Asset[]
+
+---
+
+3. REQUEST CLASS
+Attributes:
+- id: UUID
+- requestType: String (ENUM: withdrawal, purchase, transfer, maintenance, disposal)
+- itemName: String
+- quantity: Integer
+- status: String (ENUM: pending, under_review, approved, rejected, in_progress, completed, cancelled)
+- priority: String (ENUM: low, medium, high, urgent)
+- workUnit: String
+- purpose: Text
+- requestDate: Date
+- requestedBy: UUID (FK)
+- approvedBy: UUID (FK)
+
+Operations:
++ create(): Request
++ update(data: Object): Request
++ delete(): Boolean
++ submit(): void
++ approve(approverId: UUID, notes: String): void
++ reject(reason: String): void
++ cancel(): void
++ complete(): void
++ assignApprover(approverId: UUID): void
++ getByStatus(status: String): Request[]
+
+---
+
+4. TRANSFER CLASS
+Attributes:
+- id: UUID
+- assetId: UUID (FK)
+- status: String (ENUM: pending, approved, rejected, in_transit, completed)
+- fromLocation: String
+- toLocation: String
+- fromUserId: UUID (FK)
+- toUserId: UUID (FK)
+- reason: Text
+- requestDate: Date
+
+Operations:
++ create(): Transfer
++ update(data: Object): Transfer
++ approve(approverId: UUID): void
++ reject(reason: String): void
++ complete(): void
++ cancel(): void
++ addHistory(action: String): void
++ getHistory(): TransferHistory[]
+
+---
+
+5. RETURN CLASS
+Attributes:
+- id: UUID
+- assetId: UUID (FK)
+- status: String (ENUM: pending, inspected, approved, rejected, completed)
+- returnCondition: String (ENUM: excellent, good, fair, poor, damaged)
+- returnDate: Date
+- returnedBy: UUID (FK)
+- inspectionNotes: Text
+
+Operations:
++ create(): Return
++ update(data: Object): Return
++ inspect(condition: String, notes: Text): void
++ approve(): void
++ reject(reason: String): void
++ complete(): void
+
+---
+
+6. PROCUREMENT_WORKFLOW CLASS
+Attributes:
+- id: UUID
+- requestId: UUID (FK)
+- currentState: String (ENUM: purchase_initiated, qa_pending, qa_approved, qa_rejected, completed)
+- workflowType: String
+- permittedAmount: Integer
+- completedAt: Date
+
+Operations:
++ create(): ProcurementWorkflow
++ updateState(newState: String): void
++ complete(): void
++ cancel(): void
++ getProgress(): Object
+
+---
+
+7. PROCUREMENT_INSPECTION CLASS
+Attributes:
+- id: UUID
+- requestId: UUID (FK)
+- workflowId: UUID (FK)
+- status: String (ENUM: pending, passed, failed)
+- assessedCondition: String
+- inspectionDate: Date
+- inspectedBy: UUID (FK)
+- remarks: Text
+
+Operations:
++ create(): ProcurementInspection
++ update(data: Object): ProcurementInspection
++ pass(condition: String, remarks: Text): void
++ fail(reason: Text): void
++ generateModel19(): Document
+
+---
+
+8. TRANSFER_HISTORY CLASS
+Attributes:
+- id: UUID
+- transferId: UUID (FK)
+- action: String
+- previousStatus: String
+- newStatus: String
+- performedBy: UUID (FK)
+- notes: Text
+- timestamp: Date
+
+Operations:
++ create(): TransferHistory
++ getByTransfer(transferId: UUID): TransferHistory[]
+
+---
+
+9. AUDIT_LOG CLASS
+Attributes:
+- id: UUID
+- action: String
+- entityType: String
+- entityId: UUID
+- userId: UUID (FK)
+- changes: JSON
+- timestamp: Date
+
+Operations:
++ create(action: String, entityType: String, entityId: UUID): AuditLog
++ getByEntity(entityType: String, entityId: UUID): AuditLog[]
++ getByUser(userId: UUID): AuditLog[]
++ getByDateRange(startDate: Date, endDate: Date): AuditLog[]
+
+---
+
+10. NOTIFICATION CLASS
+Attributes:
+- id: UUID
+- userId: UUID (FK)
+- title: String
+- message: Text
+- type: String (ENUM: info, warning, success, error)
+- isRead: Boolean
+- createdAt: Date
+
+Operations:
++ create(userId: UUID, title: String, message: Text): Notification
++ markAsRead(): void
++ markAsUnread(): void
++ delete(): Boolean
++ getUnreadCount(userId: UUID): Integer
++ getByUser(userId: UUID): Notification[]
+
+===========================================
+RELATIONSHIPS (UML ASSOCIATIONS):
+===========================================
+
+1. User "1" ---- "0..*" Asset : assigns >
+2. User "1" ---- "0..*" Request : submits >
+3. User "1" ---- "0..*" Transfer : initiates >
+4. User "1" ---- "0..*" Return : returns >
+5. User "1" ---- "0..*" Notification : receives >
+6. User "1" ---- "0..*" AuditLog : logs >
+
+7. Asset "1" ---- "0..*" Transfer : transferred in >
+8. Asset "1" ---- "0..*" Return : returned as >
+9. Asset "1" ---- "0..*" ProcurementInspection : inspected >
+
+10. Request "1" ---- "0..1" ProcurementWorkflow : follows >
+11. Request "1" ---- "0..*" ProcurementInspection : requires >
+
+12. Transfer "1" *---- "1..*" TransferHistory : tracks > (COMPOSITION)
+
+13. ProcurementWorkflow "1" ---- "1..*" User : involves >
+
+===========================================
+DIAGRAM REQUIREMENTS:
+===========================================
+
+LAYOUT:
+- Use left-to-right or top-to-bottom layout
+- Group related classes together
+- Minimize crossing lines
+- Use orthogonal (straight) lines for associations
+
+STYLING:
+- Professional, clean appearance
+- Use standard UML notation
+- Class boxes with 3 compartments:
+  1. Class name (bold, centered)
+  2. Attributes (- for private, + for public)
+  3. Operations/Methods (+ for public, - for private)
+- Use stereotypes: <<Entity>>, <<Workflow>>, <<Audit>>
+- Color coding (optional):
+  * Entity classes: Light green (#E8F5E9)
+  * Workflow classes: Light blue (#E3F2FD)
+  * Audit classes: Light orange (#FFF3E0)
+
+ASSOCIATIONS:
+- Use proper UML notation:
+  * Solid line for association
+  * Diamond for composition (filled) or aggregation (hollow)
+  * Arrow for navigability
+  * Multiplicity at both ends (1, 0..1, 0..*, 1..*)
+- Label relationships with verb phrases
+- Show foreign key relationships
+
+PROFESSIONAL TOUCHES:
+- Add diagram title: "Figure 4.X: WDUPMS Class Diagram"
+- Add legend explaining stereotypes and colors
+- Ensure all text is readable
+- Use consistent font sizes
+- Add package/namespace grouping if needed
+
+===========================================
+OUTPUT FORMAT:
+===========================================
+
+Generate the diagram in PlantUML format (.puml) that can be rendered using:
+- PlantUML online editor
+- VS Code PlantUML extension
+- IntelliJ IDEA PlantUML plugin
+
+The diagram should be publication-ready for inclusion in:
+- Software architecture documentation
+- Technical reports
+- Academic papers
+- System design documents
+
+===========================================
+EXAMPLE CLASS STRUCTURE:
+===========================================
+
+class User <<Entity>> {
+    - id: UUID
+    - username: String
+    - email: String
+    - password: String
+    - role: String
+    - isActive: Boolean
+    ____
+    + comparePassword(password: String): Boolean
+    + toSafeObject(): Object
+    + getFullName(): String
+    + updateLastLogin(): void
+    + activate(): void
+    + deactivate(): void
+}
+
+===========================================
+CRITICAL REQUIREMENTS:
+===========================================
+
+✓ MUST include operations/methods for ALL classes
+✓ MUST use proper UML notation
+✓ MUST be professional and publication-ready
+✓ MUST show all relationships with multiplicities
+✓ MUST use 3-compartment class boxes
+✓ MUST be clear and readable
+✓ MUST follow UML 2.5 standards
+
+DO NOT:
+✗ Create classes with only attributes (unprofessional)
+✗ Use informal notation
+✗ Omit multiplicities
+✗ Create cluttered or messy layouts
+✗ Use inconsistent styling
+
+===========================================
+
+Generate a complete, professional PlantUML class diagram following all the requirements above.

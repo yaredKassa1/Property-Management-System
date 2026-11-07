@@ -1,0 +1,50 @@
+Annotate this login screenshot for a technical user manual. Keep it CLEAN and PROFESSIONAL.
+
+STRICT RULES:
+- DO NOT modify the original screenshot
+- DO NOT add logos, branding, or decorative elements  
+- ONLY add thin red arrows and numbered labels
+- Use simple, clean technical documentation style
+
+ADD THESE ANNOTATIONS:
+
+① Point to "Welcome Back" → Label: "System title"
+
+② Point to "Select Your Role" dropdown → Label: "STEP 1: Select role"
+
+③ Point to dropdown arrow (▼) → Label: "Expand options"
+
+④ Point to "Username" field → Label: "STEP 2: Enter username"
+
+⑤ Point to "Password" field → Label: "STEP 3: Enter password"
+
+⑥ Point to eye icon (👁) → Label: "Show/hide password"
+
+⑦ Point to "Remember me" checkbox → Label: "STEP 4: Optional"
+
+⑧ Point to "Forgot password?" link → Label: "Password recovery"
+
+⑨ Point to "Sign In" button → Label: "STEP 5: Click to login" (make this arrow thicker)
+
+⑩ Point to "Contact administrator" → Label: "Get help"
+
+STYLE:
+- Thin red arrows (2px)
+- Small numbered circles (white text on red)
+- Clean sans-serif labels (Arial, 10pt)
+- White label backgrounds with thin gray border
+- No shadows, gradients, or effects
+- Professional technical manual appearance
+
+LAYOUT:
+- Place labels OUTSIDE the screenshot when possible
+- Align annotations neatly on left and right sides
+- Don't overlap arrows or labels
+- Keep it minimal and clean
+
+OUTPUT:
+- High resolution PNG
+- Clear and readable
+- Suitable for printing in a manual
+
+Make it look like a professional technical diagram, NOT marketing material.
