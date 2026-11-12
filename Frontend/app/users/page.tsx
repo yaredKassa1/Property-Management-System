@@ -12,6 +12,23 @@ import { WingSelectionModal } from './WingSelectionModal';
 import { ACADEMIC_COLLEGES, ACADEMIC_SCHOOLS, ACADEMIC_DEPARTMENTS, ADMINISTRATIVE_UNITS } from './organizationalData';
 import { AcademicWingForm } from './AcademicWingForm';
 import { AdministrativeWingForm } from './AdministrativeWingForm';
+import { useLanguage } from '@/lib/contexts';
+import {
+  UsersIcon,
+  CheckCircleIcon,
+  PauseCircleIcon,
+  ShieldCheckIcon,
+  UserIcon,
+  AcademicCapIcon,
+  FolderIcon,
+  DocumentCheckIcon,
+  ShoppingCartIcon,
+  BeakerIcon,
+  PencilIcon,
+  KeyIcon,
+  NoSymbolIcon,
+  BuildingOfficeIcon
+} from '@heroicons/react/24/outline';
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -26,12 +43,13 @@ export default function UsersPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+  const { t } = useLanguage();
 
   useEffect(() => {
     const user = getUser();
     setCurrentUser(user);
     if (user?.role !== 'administrator') {
-      setError('Access denied. Administrator privileges required.');
+      setError(t('access_denied_admin'));
       setLoading(false);
       return;
     }
@@ -46,26 +64,26 @@ export default function UsersPage() {
       const data = Array.isArray(response) ? response : response.data || [];
       setUsers(data);
     } catch (err: any) {
-      setError('Failed to load users. Please try again.');
+      setError(t('failed_to_load_users'));
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeactivate = async (user: User) => {
-    if (!confirm(`Deactivate "${user.username}"?`)) return;
+    if (!confirm(`${t('deactivate_user_confirm')} "${user.username}"?`)) return;
     setActionLoading(true);
     try { await api.deleteUser(user.id, false); fetchUsers(); }
-    catch (err: any) { alert('Failed: ' + err.message); }
+    catch (err: any) { alert(`${t('failed')}: ` + err.message); }
     finally { setActionLoading(false); }
   };
 
   const handleResetPassword = async (user: User) => {
-    const pw = prompt(`New password for "${user.username}" (min 6 chars):`);
-    if (!pw || pw.length < 6) { if (pw !== null) alert('Min 6 characters'); return; }
+    const pw = prompt(`${t('new_password_prompt')} "${user.username}" (${t('min_6_chars')}):`);
+    if (!pw || pw.length < 6) { if (pw !== null) alert(t('min_6_characters_required')); return; }
     setActionLoading(true);
-    try { await api.resetUserPassword(user.id, pw); alert('Password reset!'); }
-    catch (err: any) { alert('Failed: ' + err.message); }
+    try { await api.resetUserPassword(user.id, pw); alert(t('password_reset_success')); }
+    catch (err: any) { alert(`${t('failed')}: ` + err.message); }
     finally { setActionLoading(false); }
   };
 
@@ -81,9 +99,14 @@ export default function UsersPage() {
     staff:            'bg-gray-100 text-gray-700 border-gray-200',
   };
 
-  const ROLE_ICONS: Record<string, string> = {
-    administrator: '🛡️', vice_president: '🎓', property_officer: '🗂️',
-    approval_authority: '🧾', purchase_department: '🛒', quality_assurance: '🧪', staff: '👤',
+  const ROLE_ICONS: Record<string, any> = {
+    administrator: ShieldCheckIcon,
+    vice_president: AcademicCapIcon,
+    property_officer: FolderIcon,
+    approval_authority: DocumentCheckIcon,
+    purchase_department: ShoppingCartIcon,
+    quality_assurance: BeakerIcon,
+    staff: UserIcon,
   };
 
   const roles = ['all', 'administrator', 'vice_president', 'property_officer', 'approval_authority', 'purchase_department', 'quality_assurance', 'staff'];
@@ -126,56 +149,73 @@ export default function UsersPage() {
     <DashboardLayout>
       <div className="space-y-6 pb-10">
 
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-            <p className="text-gray-500 text-sm mt-1">Manage system users and access control</p>
+        {/* Professional Header Card with Short Accent Line */}
+        <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+          <div className="p-6">
+            <div className="flex items-start justify-between">
+              {/* Title with Short Accent Line */}
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('user_management')}</h1>
+                {/* Short Horizontal Accent Line */}
+                <div className="h-1 w-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full mb-3"></div>
+                <p className="text-sm text-gray-600">{t('manage_system_users')}</p>
+              </div>
+              
+              {/* Action Button */}
+              <button onClick={() => setShowWingSelection(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold text-sm hover:bg-indigo-700 transition-colors shadow">
+                {t('create_user')}
+              </button>
+            </div>
           </div>
-          <button onClick={() => setShowWingSelection(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl font-semibold text-sm hover:bg-indigo-700 transition-colors shadow">
-            + Create User
-          </button>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: 'Total Users',  value: stats.total,    grad: 'from-slate-500 to-slate-700',   icon: '👥' },
-            { label: 'Active',       value: stats.active,   grad: 'from-green-400 to-green-600',   icon: '✅' },
-            { label: 'Inactive',     value: stats.inactive, grad: 'from-gray-400 to-gray-600',     icon: '⏸️' },
-            { label: 'Admins',       value: stats.admins,   grad: 'from-red-400 to-red-600',       icon: '🛡️' },
-          ].map(s => (
-            <div key={s.label} className={`bg-gradient-to-br ${s.grad} rounded-xl p-4 text-white shadow`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium opacity-80">{s.label}</p>
-                  <p className="text-3xl font-bold mt-1">{s.value}</p>
+            { label: t('total_users'),  value: stats.total,    grad: 'from-slate-500 to-slate-700',   icon: UsersIcon },
+            { label: t('active'),       value: stats.active,   grad: 'from-green-400 to-green-600',   icon: CheckCircleIcon },
+            { label: t('inactive'),     value: stats.inactive, grad: 'from-gray-400 to-gray-600',     icon: PauseCircleIcon },
+            { label: t('admins'),       value: stats.admins,   grad: 'from-red-400 to-red-600',       icon: ShieldCheckIcon },
+          ].map(s => {
+            const IconComponent = s.icon;
+            return (
+              <div key={s.label} className={`bg-gradient-to-br ${s.grad} rounded-xl p-4 text-white shadow`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium opacity-80">{s.label}</p>
+                    <p className="text-3xl font-bold mt-1">{s.value}</p>
+                  </div>
+                  <IconComponent className="w-8 h-8 opacity-80" />
                 </div>
-                <span className="text-3xl opacity-80">{s.icon}</span>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
-          <input type="text" placeholder="Search by name, username, email, department..."
+          <input type="text" placeholder={t('search_users')}
             value={search} onChange={e => setSearch(e.target.value)}
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white text-gray-900" />
           <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-400">
-            {roles.map(r => (
-              <option key={r} value={r}>{r === 'all' ? 'All Roles' : `${ROLE_ICONS[r] || ''} ${r.replace(/_/g, ' ')}`}</option>
-            ))}
+            {roles.map(r => {
+              const RoleIcon = ROLE_ICONS[r];
+              return (
+                <option key={r} value={r}>
+                  {r === 'all' ? t('all_roles') : r.replace(/_/g, ' ')}
+                </option>
+              );
+            })}
           </select>
         </div>
 
         {/* User Cards Grid */}
         {filtered.length === 0 ? (
           <div className="text-center py-20 text-gray-400">
-            <p className="text-4xl mb-3">👥</p>
-            <p className="font-medium">No users found</p>
+            <UsersIcon className="w-16 h-16 mx-auto mb-3 text-gray-300" />
+            <p className="font-medium">{t('no_users_found')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -183,7 +223,7 @@ export default function UsersPage() {
               const fullName = `${u.firstName}${u.middleName ? ' ' + u.middleName : ''} ${u.lastName}`;
               const initials = `${u.firstName?.[0] || ''}${u.lastName?.[0] || ''}`.toUpperCase();
               const roleColor = ROLE_COLORS[u.role] || ROLE_COLORS.staff;
-              const roleIcon = ROLE_ICONS[u.role] || '👤';
+              const RoleIcon = ROLE_ICONS[u.role] || UserIcon;
               return (
                 <div key={u.id} className={`bg-white rounded-xl border shadow-sm hover:shadow-md transition-shadow overflow-hidden ${!u.isActive ? 'opacity-60' : ''}`}>
                   {/* Card top accent */}
@@ -200,16 +240,18 @@ export default function UsersPage() {
                         <p className="text-xs text-gray-400 truncate mt-0.5">{u.email}</p>
                       </div>
                       {/* Status dot */}
-                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1 ${u.isActive ? 'bg-green-500' : 'bg-gray-400'}`} title={u.isActive ? 'Active' : 'Inactive'} />
+                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1 ${u.isActive ? 'bg-green-500' : 'bg-gray-400'}`} title={u.isActive ? t('active') : t('inactive')} />
                     </div>
 
                     <div className="mt-4 flex items-center gap-2 flex-wrap">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${roleColor}`}>
-                        {roleIcon} {u.role.replace(/_/g, ' ')}
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${roleColor}`}>
+                        <RoleIcon className="w-3.5 h-3.5" />
+                        {u.role.replace(/_/g, ' ')}
                       </span>
                       {u.workUnit && (
-                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full truncate max-w-[140px]">
-                          🏢 {u.workUnit}
+                        <span className="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full truncate max-w-[140px]">
+                          <BuildingOfficeIcon className="w-3 h-3" />
+                          {u.workUnit}
                         </span>
                       )}
                     </div>
@@ -217,17 +259,20 @@ export default function UsersPage() {
                     {/* Actions */}
                     <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-2">
                       <button onClick={() => handleEdit(u)} disabled={actionLoading}
-                        className="flex-1 text-xs py-1.5 rounded-lg border border-indigo-300 text-indigo-600 hover:bg-indigo-50 font-medium transition-colors">
-                        ✏️ Edit
+                        className="flex-1 text-xs py-1.5 rounded-lg border border-indigo-300 text-indigo-600 hover:bg-indigo-50 font-medium transition-colors inline-flex items-center justify-center gap-1">
+                        <PencilIcon className="w-3.5 h-3.5" />
+                        {t('edit')}
                       </button>
                       <button onClick={() => handleResetPassword(u)} disabled={actionLoading || !u.isActive}
-                        className="flex-1 text-xs py-1.5 rounded-lg border border-purple-300 text-purple-600 hover:bg-purple-50 font-medium transition-colors disabled:opacity-40">
-                        🔑 Reset PW
+                        className="flex-1 text-xs py-1.5 rounded-lg border border-purple-300 text-purple-600 hover:bg-purple-50 font-medium transition-colors disabled:opacity-40 inline-flex items-center justify-center gap-1">
+                        <KeyIcon className="w-3.5 h-3.5" />
+                        {t('reset_pw')}
                       </button>
                       {u.isActive && u.id !== currentUser?.id && (
                         <button onClick={() => handleDeactivate(u)} disabled={actionLoading}
-                          className="flex-1 text-xs py-1.5 rounded-lg border border-red-300 text-red-600 hover:bg-red-50 font-medium transition-colors">
-                          🚫 Deactivate
+                          className="flex-1 text-xs py-1.5 rounded-lg border border-red-300 text-red-600 hover:bg-red-50 font-medium transition-colors inline-flex items-center justify-center gap-1">
+                          <NoSymbolIcon className="w-3.5 h-3.5" />
+                          {t('deactivate')}
                         </button>
                       )}
                     </div>
@@ -266,6 +311,7 @@ export default function UsersPage() {
 
 // Create User Modal Component
 function CreateUserModal({ wing, onClose, onSuccess }: { wing: 'academic' | 'administrative'; onClose: () => void; onSuccess: () => void }) {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -304,54 +350,66 @@ function CreateUserModal({ wing, onClose, onSuccess }: { wing: 'academic' | 'adm
   // Validation functions
   const validateName = (name: string, fieldName: string, required = true): string => {
     if (required && !name.trim()) {
-      return `${fieldName} is required`;
+      return `${fieldName} ${t('required')}`;
     }
     if (name && !/^[a-zA-Z\s]+$/.test(name)) {
-      return `${fieldName} can only contain letters and spaces`;
+      return t(`${fieldName.toLowerCase().replace(' ', '_')}_format`);
     }
     if (name && name.length > 50) {
-      return `${fieldName} must be less than 50 characters`;
+      return t(`${fieldName.toLowerCase().replace(' ', '_')}_max_length`);
     }
     return '';
   };
 
   const validateUsername = (username: string): string => {
     if (!username.trim()) {
-      return 'Username is required';
+      return t('username_required');
     }
     if (username.length < 3 || username.length > 50) {
-      return 'Username must be between 3 and 50 characters';
+      return t('username_length');
     }
     if (!/^[a-zA-Z0-9._-]+$/.test(username)) {
-      return 'Username can only contain letters, numbers, dots, underscores, and hyphens';
+      return t('username_format');
     }
     return '';
   };
 
   const validateEmail = (email: string): string => {
     if (!email.trim()) {
-      return 'Email is required';
+      return t('email_required');
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return 'Please enter a valid email address';
+      return t('email_invalid');
     }
     return '';
   };
 
   const validatePassword = (password: string): string => {
     if (!password) {
-      return 'Password is required';
+      return t('password_required');
     }
-    if (password.length < 6) {
-      return 'Password must be at least 6 characters long';
+    if (password.length < 8) {
+      return t('password_min_length');
+    }
+    if (!/[A-Z]/.test(password)) {
+      return t('password_uppercase_required');
+    }
+    if (!/[a-z]/.test(password)) {
+      return t('password_lowercase_required');
+    }
+    if (!/\d/.test(password)) {
+      return t('password_number_required');
+    }
+    if (!/[^A-Za-z0-9]/.test(password)) {
+      return t('password_special_required');
     }
     return '';
   };
 
   const validatePhoneNumber = (phoneNumber: string): string => {
     if (phoneNumber && !/^[79]\d{8}$/.test(phoneNumber)) {
-      return 'Phone number must be 9 digits starting with 7 or 9';
+      return t('phone_number_format');
     }
     return '';
   };
@@ -423,15 +481,15 @@ function CreateUserModal({ wing, onClose, onSuccess }: { wing: 'academic' | 'adm
     // Wing-specific validation
     if (wing === 'academic') {
       if (!formData.college) {
-        newErrors.college = 'College is required';
+        newErrors.college = t('college_required');
       }
       // School is optional
       if (!formData.department) {
-        newErrors.department = 'Department is required';
+        newErrors.department = t('department_required');
       }
     } else if (wing === 'administrative') {
       if (!formData.administrativeUnit) {
-        newErrors.administrativeUnit = 'Administrative unit is required';
+        newErrors.administrativeUnit = t('administrative_unit_required');
       }
     }
 
@@ -462,7 +520,7 @@ function CreateUserModal({ wing, onClose, onSuccess }: { wing: 'academic' | 'adm
       const submitData = { ...dataToSend, phoneNumber: fullPhoneNumber };
       
       await api.createUser(submitData);
-      alert('User created successfully!');
+      alert(t('user_created_success'));
       onSuccess();
     } catch (err: any) {
       // Handle server validation errors
@@ -473,7 +531,7 @@ function CreateUserModal({ wing, onClose, onSuccess }: { wing: 'academic' | 'adm
         });
         setErrors(serverErrors);
       } else {
-        alert('Failed to create user: ' + err.message);
+        alert(`${t('failed_to_create_user')}: ${err.message}`);
       }
     } finally {
       setLoading(false);
@@ -493,14 +551,14 @@ function CreateUserModal({ wing, onClose, onSuccess }: { wing: 'academic' | 'adm
             >
               ←
             </button>
-            <h2 className="text-2xl font-bold">Create New User</h2>
+            <h2 className="text-2xl font-bold">{t('create_new_user_title')}</h2>
           </div>
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Username *
+                  {t('username')} *
                 </label>
                 <input
                   type="text"
@@ -519,7 +577,7 @@ function CreateUserModal({ wing, onClose, onSuccess }: { wing: 'academic' | 'adm
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email *
+                  {t('email')} *
                 </label>
                 <input
                   type="email"
@@ -540,7 +598,7 @@ function CreateUserModal({ wing, onClose, onSuccess }: { wing: 'academic' | 'adm
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  First Name *
+                  {t('first_name')} *
                 </label>
                 <input
                   type="text"
@@ -559,7 +617,7 @@ function CreateUserModal({ wing, onClose, onSuccess }: { wing: 'academic' | 'adm
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Middle Name
+                  {t('middle_name')}
                 </label>
                 <input
                   type="text"
@@ -577,7 +635,7 @@ function CreateUserModal({ wing, onClose, onSuccess }: { wing: 'academic' | 'adm
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Last Name *
+                  {t('last_name')} *
                 </label>
                 <input
                   type="text"
@@ -597,7 +655,7 @@ function CreateUserModal({ wing, onClose, onSuccess }: { wing: 'academic' | 'adm
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Phone Number
+                {t('phone_number')}
               </label>
               <div className="grid grid-cols-3 gap-2">
                 <select
@@ -622,7 +680,7 @@ function CreateUserModal({ wing, onClose, onSuccess }: { wing: 'academic' | 'adm
                       errors.phoneNumber ? 'border-red-500' : 'border-gray-300'
                     }`}
                     placeholder="9XXXXXXXX or 7XXXXXXXX"
-                    title="Enter 9 digits starting with 9 (Ethio Telecom) or 7 (Safaricom)"
+                    title={t('phone_number_helper')}
                   />
                 </div>
               </div>
@@ -630,27 +688,29 @@ function CreateUserModal({ wing, onClose, onSuccess }: { wing: 'academic' | 'adm
                 <p className="text-red-500 text-xs mt-1">{errors.phoneNumber}</p>
               )}
               <p className="text-xs text-gray-500 mt-1">
-                9XXXXXXXX for Ethio Telecom or 7XXXXXXXX for Safaricom
+                {t('phone_number_helper')}
               </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Password *
+                {t('password')} *
               </label>
               <input
                 type="password"
                 required
-                minLength={6}
+                minLength={8}
                 value={formData.password}
                 onChange={(e) => handleFieldChange('password', e.target.value)}
                 className={`w-full px-3 py-2 border rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   errors.password ? 'border-red-500' : 'border-gray-300'
                 }`}
-                placeholder="Min 6 characters"
+                placeholder={t('min_8_characters')}
               />
-              {errors.password && (
+              {errors.password ? (
                 <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+              ) : (
+                <p className="text-xs text-gray-500 mt-1">{t('password_requirements')}</p>
               )}
             </div>
 
@@ -707,7 +767,7 @@ function CreateUserModal({ wing, onClose, onSuccess }: { wing: 'academic' | 'adm
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Role *
+                  {t('role_label')} *
                 </label>
                 <select
                   required
@@ -734,16 +794,16 @@ function CreateUserModal({ wing, onClose, onSuccess }: { wing: 'academic' | 'adm
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
               <label className="ml-2 block text-sm text-gray-900">
-                Active (user can log in)
+                {t('active_user_can_login')}
               </label>
             </div>
 
             <div className="flex space-x-3 pt-4">
               <Button type="submit" disabled={loading}>
-                {loading ? 'Creating...' : 'Create User'}
+                {loading ? t('creating') : t('create_user_button')}
               </Button>
               <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
+                {t('cancel')}
               </Button>
             </div>
           </form>
@@ -755,6 +815,7 @@ function CreateUserModal({ wing, onClose, onSuccess }: { wing: 'academic' | 'adm
 
 // Edit User Modal Component
 function EditUserModal({ user, onClose, onSuccess }: { user: User; onClose: () => void; onSuccess: () => void }) {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     firstName: user.firstName,
     middleName: user.middleName || '',
@@ -779,10 +840,10 @@ function EditUserModal({ user, onClose, onSuccess }: { user: User; onClose: () =
       const submitData = { ...dataToSend, phoneNumber: fullPhoneNumber };
       
       await api.updateUser(user.id, submitData);
-      alert('User updated successfully!');
+      alert(t('user_updated_success'));
       onSuccess();
     } catch (err: any) {
-      alert('Failed to update user: ' + err.message);
+      alert(`${t('failed')}: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -801,14 +862,14 @@ function EditUserModal({ user, onClose, onSuccess }: { user: User; onClose: () =
             >
               ←
             </button>
-            <h2 className="text-2xl font-bold">Edit User: {user.username}</h2>
+            <h2 className="text-2xl font-bold">{t('edit_user_title')}: {user.username}</h2>
           </div>
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  First Name *
+                  {t('first_name')} *
                 </label>
                 <input
                   type="text"
@@ -821,7 +882,7 @@ function EditUserModal({ user, onClose, onSuccess }: { user: User; onClose: () =
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Middle Name
+                  {t('middle_name')}
                 </label>
                 <input
                   type="text"
@@ -833,7 +894,7 @@ function EditUserModal({ user, onClose, onSuccess }: { user: User; onClose: () =
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Last Name *
+                  {t('last_name')} *
                 </label>
                 <input
                   type="text"
@@ -847,7 +908,7 @@ function EditUserModal({ user, onClose, onSuccess }: { user: User; onClose: () =
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Phone Number
+                {t('phone_number')}
               </label>
               <div className="grid grid-cols-3 gap-2">
                 <select
@@ -870,18 +931,18 @@ function EditUserModal({ user, onClose, onSuccess }: { user: User; onClose: () =
                     pattern="[79]\d{8}"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="9XXXXXXXX or 7XXXXXXXX"
-                    title="Enter 9 digits starting with 9 (Ethio Telecom) or 7 (Safaricom)"
+                    title={t('phone_number_helper')}
                   />
                 </div>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                9XXXXXXXX for Ethio Telecom or 7XXXXXXXX for Safaricom
+                {t('phone_number_helper')}
               </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email *
+                {t('email')} *
               </label>
               <input
                 type="email"
@@ -895,7 +956,7 @@ function EditUserModal({ user, onClose, onSuccess }: { user: User; onClose: () =
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Role *
+                  {t('role_label')} *
                 </label>
                 <select
                   required
@@ -915,14 +976,14 @@ function EditUserModal({ user, onClose, onSuccess }: { user: User; onClose: () =
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Work Unit
+                  {t('work_unit')}
                 </label>
                 <input
                   type="text"
                   value={formData.workUnit}
                   onChange={(e) => setFormData({ ...formData, workUnit: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g., IT Department, College of Engineering"
+                  placeholder={t('work_unit_placeholder')}
                 />
               </div>
             </div>
@@ -935,16 +996,16 @@ function EditUserModal({ user, onClose, onSuccess }: { user: User; onClose: () =
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
               <label className="ml-2 block text-sm text-gray-900">
-                Active (user can log in)
+                {t('active_user_can_login')}
               </label>
             </div>
 
             <div className="flex space-x-3 pt-4">
               <Button type="submit" disabled={loading}>
-                {loading ? 'Updating...' : 'Update User'}
+                {loading ? t('updating') : t('update_user_button')}
               </Button>
               <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
+                {t('cancel')}
               </Button>
             </div>
           </form>

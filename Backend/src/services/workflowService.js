@@ -190,6 +190,7 @@ class WorkflowService {
           : 'purchase_notification_sent';
         updateData.propertyOfficerId = triggeredBy;
         updateData.propertyOfficerTimestamp = new Date();
+        if (data.signature) updateData.propertyOfficerSignature = data.signature;
         if (nextState === 'purchase_notification_sent') {
           updateData.purchaseDepartmentNotifiedAt = new Date();
         }

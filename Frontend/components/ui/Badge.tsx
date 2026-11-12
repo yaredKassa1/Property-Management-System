@@ -14,7 +14,7 @@ export function Badge({ children, variant = 'default', className }: BadgeProps) 
     warning: 'bg-yellow-100 text-yellow-800',
     danger:  'bg-red-100 text-red-800',
     error:   'bg-red-100 text-red-800',
-    info:    'bg-blue-100 text-blue-800',
+    info:    'bg-blue-100 text-[#1E9FE8]',
   };
 
   return (

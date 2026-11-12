@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { api } from '@/lib/api';
 import { getUser } from '@/lib/auth';
 import { User } from '@/lib/types';
+import { useLanguage } from '@/lib/contexts';
 
 interface AuditLog {
   id: string;
@@ -25,6 +26,7 @@ interface AuditLog {
 }
 
 export default function AuditLogsPage() {
+  const { t } = useLanguage();
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -127,10 +129,16 @@ export default function AuditLogsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Audit Logs</h1>
-          <p className="text-gray-500 mt-1">Monitor system activities and security events</p>
+        {/* Professional Header Card with Short Accent Line */}
+        <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+          <div className="p-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('audit_logs_title')}</h1>
+              {/* Short Horizontal Accent Line */}
+              <div className="h-1 w-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full mb-3"></div>
+              <p className="text-sm text-gray-600">{t('monitor_activities')}</p>
+            </div>
+          </div>
         </div>
 
         {/* Filters */}
@@ -285,7 +293,7 @@ export default function AuditLogsPage() {
                           onClick={() => setSelectedLog(log)}
                           className="text-blue-600 hover:text-blue-900"
                         >
-                          View Details
+                          {t('view_details_btn')}
                         </button>
                       </td>
                     </tr>
@@ -311,7 +319,7 @@ export default function AuditLogsPage() {
 // View Log Details Modal Component
 function ViewLogModal({ log, onClose }: { log: AuditLog; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 backdrop-blur-sm bg-black/20 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <h2 className="text-2xl font-bold mb-4">Audit Log Details</h2>

@@ -144,6 +144,11 @@ db.Request.belongsTo(db.User, {
 });
 
 db.Request.belongsTo(db.User, {
+  foreignKey: 'completedBy',
+  as: 'completer'
+});
+
+db.Request.belongsTo(db.User, {
   foreignKey: 'processedBy',
   as: 'processor'
 });

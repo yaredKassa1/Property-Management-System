@@ -34,10 +34,17 @@ const getRequests = async (req, res, next) => {
     if (workUnit) where.workUnit = workUnit;
     if (requestedBy) where.requestedBy = requestedBy;
 
-    // Role-based filtering: Staff and regular users only see their own requests
-    // Property officers, approval authorities, admins, and vice presidents see all
-    const allowedToSeeAll = ['property_officer', 'approval_authority', 'administrator', 'vice_president', 'purchase_department', 'quality_assurance'];
-    if (!allowedToSeeAll.includes(req.user.role)) {
+    // Role-based filtering
+    // Staff and regular users only see their own requests
+    // Approval authorities see only requests from their work unit (hierarchy)
+    // Property officers, admins, and vice presidents see all
+    const allowedToSeeAll = ['property_officer', 'administrator', 'vice_president', 'purchase_department', 'quality_assurance'];
+    
+    if (req.user.role === 'approval_authority') {
+      // Approval authorities can only see requests from their own work unit (hierarchy)
+      where.workUnit = req.user.workUnit;
+    } else if (!allowedToSeeAll.includes(req.user.role)) {
+      // Staff and other users only see their own requests
       where.requestedBy = req.user.id;
     }
 
@@ -139,6 +146,7 @@ const getRequestById = async (req, res, next) => {
             'approvalAuthorityId', 'approvalAuthorityDecision', 'approvalAuthorityComments',
             'approvalAuthorityTimestamp', 'approvalAuthoritySignature',
             'vpId', 'vpDecision', 'vpComments', 'vpTimestamp', 'vpSignature',
+            'propertyOfficerId', 'propertyOfficerTimestamp', 'propertyOfficerSignature',
             'qaDecision', 'qaComments', 'qaTimestamp',
             'itemProcuredAt', 'completedAt'
           ],
@@ -152,6 +160,12 @@ const getRequestById = async (req, res, next) => {
             {
               model: db.User,
               as: 'vicePresident',
+              required: false,
+              attributes: ['id', 'firstName', 'middleName', 'lastName', 'role']
+            },
+            {
+              model: db.User,
+              as: 'propertyOfficer',
               required: false,
               attributes: ['id', 'firstName', 'middleName', 'lastName', 'role']
             }

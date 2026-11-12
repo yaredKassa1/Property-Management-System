@@ -10,6 +10,16 @@ import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '@
 import { api } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import { getUser } from '@/lib/auth';
+import { useLanguage } from '@/lib/contexts';
+import {
+  ClipboardDocumentCheckIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  XMarkIcon,
+} from '@heroicons/react/24/outline';
 
 interface Asset {
   id: string;
@@ -40,6 +50,7 @@ function ProcessReturnModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  const { t } = useLanguage();
   const [assignedAssets, setAssignedAssets] = useState<Asset[]>([]);
   const [loadingAssets, setLoadingAssets] = useState(true);
   const [assetId, setAssetId] = useState('');
@@ -68,9 +79,9 @@ function ProcessReturnModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!assetId) { setError('Please select an asset.'); return; }
-    if (!reason.trim()) { setError('Please provide a reason for return.'); return; }
-    if (reason.trim().length < 10) { setError('Reason must be at least 10 characters.'); return; }
+    if (!assetId) { setError(t('error_select_asset')); return; }
+    if (!reason.trim()) { setError(t('error_provide_reason')); return; }
+    if (reason.trim().length < 10) { setError(t('error_min_10_chars')); return; }
 
     setSubmitting(true);
     setError('');
@@ -90,7 +101,7 @@ function ProcessReturnModal({
       <div style={modalStyle}>
         <div style={modalHeaderStyle}>
           <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: '#1a3a6b' }}>
-            Process Return
+            {t('process_return').replace('+ ', '')}
           </h2>
           <button onClick={onClose} style={closeBtnStyle}>✕</button>
         </div>
@@ -101,7 +112,7 @@ function ProcessReturnModal({
           )}
 
           <div style={fieldStyle}>
-            <label style={labelStyle}>Asset to Return *</label>
+            <label style={labelStyle}>{t('asset_to_return')} *</label>
             <select
               value={assetId}
               onChange={e => setAssetId(e.target.value)}
@@ -110,7 +121,7 @@ function ProcessReturnModal({
               disabled={loadingAssets}
             >
               <option value="">
-                {loadingAssets ? 'Loading your assets...' : '— Select an asset —'}
+                {loadingAssets ? t('loading_assets_placeholder') : t('select_asset_placeholder')}
               </option>
               {assignedAssets.map(a => (
                 <option key={a.id} value={a.id}>
@@ -121,32 +132,32 @@ function ProcessReturnModal({
             </select>
             {!loadingAssets && assignedAssets.length === 0 && (
               <p style={{ fontSize: '12px', color: '#7a90b8', marginTop: '6px' }}>
-                No assets are currently assigned to you.
+                {t('no_assets_assigned')}
               </p>
             )}
           </div>
 
           <div style={fieldStyle}>
-            <label style={labelStyle}>Reason for Return *</label>
+            <label style={labelStyle}>{t('reason_for_return')} *</label>
             <textarea
               value={reason}
               onChange={e => setReason(e.target.value)}
-              placeholder="Describe why you are returning this asset..."
+              placeholder={t('reason_placeholder')}
               rows={4}
               style={{ ...inputStyle, height: 'auto', resize: 'vertical' }}
               required
             />
             <p style={{ fontSize: '11.5px', color: reason.trim().length < 10 ? '#c0392b' : '#7a90b8', marginTop: '4px' }}>
-              {reason.trim().length}/10 minimum characters
+              {t('min_characters_count').replace('{count}', reason.trim().length.toString())}
             </p>
           </div>
 
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '8px' }}>
             <Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>
-              Cancel
+              {t('cancel')}
             </Button>
             <Button type="submit" variant="primary" disabled={submitting || loadingAssets || assignedAssets.length === 0}>
-              {submitting ? 'Submitting...' : 'Submit Return'}
+              {submitting ? t('submitting') : t('submit_return')}
             </Button>
           </div>
         </form>
@@ -165,13 +176,14 @@ function RejectModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  const { t } = useLanguage();
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!notes.trim()) { setError('Please provide a reason for rejection.'); return; }
+    if (!notes.trim()) { setError(t('error_provide_reason')); return; }
 
     setSubmitting(true);
     setError('');
@@ -191,7 +203,7 @@ function RejectModal({
       <div style={{ ...modalStyle, maxWidth: '440px' }}>
         <div style={modalHeaderStyle}>
           <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: '#c0392b' }}>
-            Reject Return
+            {t('reject_return')}
           </h2>
           <button onClick={onClose} style={closeBtnStyle}>✕</button>
         </div>
@@ -200,11 +212,11 @@ function RejectModal({
           {error && <div style={errorBoxStyle}>{error}</div>}
 
           <div style={fieldStyle}>
-            <label style={labelStyle}>Reason for Rejection *</label>
+            <label style={labelStyle}>{t('reason_for_rejection')} *</label>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              placeholder="Explain why this return is being rejected..."
+              placeholder={t('rejection_placeholder')}
               rows={4}
               style={{ ...inputStyle, height: 'auto', resize: 'vertical' }}
               required
@@ -213,10 +225,10 @@ function RejectModal({
 
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '8px' }}>
             <Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>
-              Cancel
+              {t('cancel')}
             </Button>
             <Button type="submit" variant="danger" disabled={submitting}>
-              {submitting ? 'Rejecting...' : 'Confirm Reject'}
+              {submitting ? t('rejecting') : t('confirm_reject')}
             </Button>
           </div>
         </form>
@@ -235,6 +247,7 @@ function ViewModal({
   onClose: () => void;
   isOfficer: boolean;
 }) {
+  const { t } = useLanguage();
   const assetLabel = record.asset
     ? `${record.asset.assetId} — ${record.asset.name}`
     : record.assetId;
@@ -244,25 +257,44 @@ function ViewModal({
     : record.returnedBy;
 
   const statusLabel = isOfficer
-    ? ({ pending: 'Pending', received: 'Accepted — Awaiting Asset', completed: 'Completed', rejected: 'Rejected' }[record.status] ?? record.status)
-    : ({ pending: 'Pending', received: 'Accepted — Bring Asset to Office', completed: 'Completed', rejected: 'Rejected' }[record.status] ?? record.status);
+    ? ({ 
+        pending: t('status_pending_officer'), 
+        received: t('status_received_officer'), 
+        completed: t('status_completed_officer'), 
+        rejected: t('status_rejected_officer') 
+      }[record.status] ?? record.status)
+    : ({ 
+        pending: t('status_pending_staff'), 
+        received: t('status_received_staff'), 
+        completed: t('status_completed_staff'), 
+        rejected: t('status_rejected_staff') 
+      }[record.status] ?? record.status);
+
+  const conditionLabel = record.returnCondition 
+    ? ({
+        excellent: t('condition_excellent'),
+        good: t('condition_good'),
+        fair: t('condition_fair'),
+        poor: t('condition_poor')
+      }[record.returnCondition] ?? record.returnCondition)
+    : null;
 
   return (
     <div style={overlayStyle}>
       <div style={{ ...modalStyle, maxWidth: '500px' }}>
         <div style={modalHeaderStyle}>
           <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: '#1a3a6b' }}>
-            Return Details
+            {t('return_details')}
           </h2>
           <button onClick={onClose} style={closeBtnStyle}>✕</button>
         </div>
 
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <DetailRow label="Asset" value={assetLabel} />
-          <DetailRow label="Returned By" value={returnerLabel} />
-          <DetailRow label="Return Date" value={formatDate(record.returnDate)} />
+          <DetailRow label={t('asset')} value={assetLabel} />
+          <DetailRow label={t('returned_by')} value={returnerLabel} />
+          <DetailRow label={t('return_date')} value={formatDate(record.returnDate)} />
           <DetailRow
-            label="Status"
+            label={t('status')}
             value={
               <Badge variant={
                 record.status === 'completed' ? 'success' :
@@ -274,17 +306,17 @@ function ViewModal({
               </Badge>
             }
           />
-          <DetailRow label="Reason" value={record.reason} />
-          {record.returnCondition && (
-            <DetailRow label="Condition" value={record.returnCondition} />
+          <DetailRow label={t('reason')} value={record.reason} />
+          {conditionLabel && (
+            <DetailRow label={t('condition')} value={conditionLabel} />
           )}
           {record.inspectionNotes && (
-            <DetailRow label="Notes" value={record.inspectionNotes} />
+            <DetailRow label={t('notes')} value={record.inspectionNotes} />
           )}
         </div>
 
         <div style={{ padding: '0 24px 24px', display: 'flex', justifyContent: 'flex-end' }}>
-          <Button variant="secondary" onClick={onClose}>Close</Button>
+          <Button variant="secondary" onClick={onClose}>{t('close')}</Button>
         </div>
       </div>
     </div>
@@ -304,6 +336,7 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ReturnsPage() {
+  const { t } = useLanguage();
   const [returns, setReturns] = useState<ReturnRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -322,19 +355,19 @@ export default function ReturnsPage() {
     if (isOfficer) {
       // Officer sees technical workflow labels
       const officerLabels: Record<string, string> = {
-        pending: 'Pending',
-        received: 'Accepted — Awaiting Asset',
-        completed: 'Completed',
-        rejected: 'Rejected',
+        pending: t('status_pending_officer'),
+        received: t('status_received_officer'),
+        completed: t('status_completed_officer'),
+        rejected: t('status_rejected_officer'),
       };
       return officerLabels[status] ?? status.replace(/_/g, ' ');
     } else {
       // Staff sees action-oriented labels
       const staffLabels: Record<string, string> = {
-        pending: 'Pending',
-        received: 'Accepted — Bring Asset to Office',
-        completed: 'Completed',
-        rejected: 'Rejected',
+        pending: t('status_pending_staff'),
+        received: t('status_received_staff'),
+        completed: t('status_completed_staff'),
+        rejected: t('status_rejected_staff'),
       };
       return staffLabels[status] ?? status.replace(/_/g, ' ');
     }
@@ -406,222 +439,278 @@ export default function ReturnsPage() {
 
   return (
     <DashboardLayout>
-      <div style={{ padding: '28px 32px', background: '#f0f4fb', minHeight: '100%' }}>
-
-        <div style={{ marginBottom: '28px' }}>
-          <div style={{ fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', color: '#7a90b8', marginBottom: '8px' }}>
-            ASSET MANAGEMENT
+      <div className="space-y-6">
+        {/* Professional Header Card with Short Accent Line */}
+        <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+          <div className="p-6">
+            <div className="flex items-start justify-between">
+              {/* Title with Short Accent Line */}
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('asset_returns')}</h1>
+                {/* Short Horizontal Accent Line */}
+                <div className="h-1 w-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full mb-3"></div>
+                <p className="text-sm text-gray-600">{t('manage_return_requests')}</p>
+              </div>
+              
+              {/* Action Button */}
+              <Button variant="primary" onClick={() => setShowProcessModal(true)}>
+                {t('process_return')}
+              </Button>
+            </div>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
-            <div>
-              <h1 style={{ fontSize: '28px', fontWeight: 600, color: '#1a3a6b', margin: '0 0 6px 0' }}>
-                Asset Returns
-              </h1>
-              <p style={{ fontSize: '13.5px', color: '#7a90b8', margin: 0 }}>
-                Manage asset return requests and approvals
-              </p>
+        </div>
+
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card className="border border-gray-200 hover:shadow-lg transition-shadow duration-200">
+            <div className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">{t('total_returns')}</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-2">{stats.total}</p>
+                </div>
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <ClipboardDocumentCheckIcon className="w-7 h-7 text-blue-600" />
+                </div>
+              </div>
             </div>
-            <Button variant="primary" onClick={() => setShowProcessModal(true)}>
-              + Process Return
-            </Button>
+          </Card>
+
+          <Card className="border border-gray-200 hover:shadow-lg transition-shadow duration-200">
+            <div className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">{t('pending')}</p>
+                  <p className="text-3xl font-bold text-amber-600 mt-2">{stats.pending}</p>
+                </div>
+                <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
+                  <ClockIcon className="w-7 h-7 text-amber-600" />
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="border border-gray-200 hover:shadow-lg transition-shadow duration-200">
+            <div className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">{t('completed')}</p>
+                  <p className="text-3xl font-bold text-green-600 mt-2">{stats.completed}</p>
+                </div>
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                  <CheckCircleIcon className="w-7 h-7 text-green-600" />
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="border border-gray-200 hover:shadow-lg transition-shadow duration-200">
+            <div className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">{t('rejected')}</p>
+                  <p className="text-3xl font-bold text-red-600 mt-2">{stats.rejected}</p>
+                </div>
+                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                  <XCircleIcon className="w-7 h-7 text-red-600" />
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Filters */}
+        <Card className="border border-gray-200">
+          <div className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <FunnelIcon className="w-5 h-5 text-gray-600" />
+              <h3 className="text-sm font-semibold text-gray-700">{t('filter')} {t('asset_returns')}</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="relative md:col-span-2">
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder={t('search_returns')}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1E9FE8] focus:border-[#1E9FE8] bg-white text-gray-900"
+              >
+                <option value="">{t('all_status_filter')}</option>
+                <option value="pending">{t('pending')}</option>
+                <option value="received">{t('received')}</option>
+                <option value="completed">{t('completed')}</option>
+                <option value="rejected">{t('rejected')}</option>
+              </select>
+
+              {(searchTerm || statusFilter) && (
+                <Button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setStatusFilter('');
+                  }}
+                  variant="outline"
+                  className="flex items-center justify-center gap-2 md:col-span-3"
+                >
+                  <XMarkIcon className="w-4 h-4" />
+                  {t('clear_filters')}
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
+        </Card>
 
-        {/* Stats Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '24px' }}>
-          <Card>
-            <div style={{ fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', color: '#7a90b8', marginBottom: '6px' }}>
-              Total Returns
+        {/* Returns Table */}
+        <Card title={t('return_requests_list')} className="border border-gray-200">
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+              <p className="text-gray-600 mt-4">{t('loading_returns')}</p>
             </div>
-            <div style={{ fontSize: '28px', fontWeight: 600, color: '#1a3a6b' }}>{stats.total}</div>
-          </Card>
-          <Card>
-            <div style={{ fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', color: '#7a90b8', marginBottom: '6px' }}>
-              Pending
+          ) : filteredReturns.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <svg
+                className="w-16 h-16 mx-auto text-gray-400 mb-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              <p className="text-gray-600 font-medium">{t('no_returns_found')}</p>
             </div>
-            <div style={{ fontSize: '28px', fontWeight: 600, color: '#1a3a6b' }}>{stats.pending}</div>
-          </Card>
-          <Card>
-            <div style={{ fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', color: '#7a90b8', marginBottom: '6px' }}>
-              Completed
-            </div>
-            <div style={{ fontSize: '28px', fontWeight: 600, color: '#1a3a6b' }}>{stats.completed}</div>
-          </Card>
-          <Card>
-            <div style={{ fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', color: '#7a90b8', marginBottom: '6px' }}>
-              Rejected
-            </div>
-            <div style={{ fontSize: '28px', fontWeight: 600, color: '#1a3a6b' }}>{stats.rejected}</div>
-          </Card>
-        </div>
-
-        {/* Search and Filter */}
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
-          <Input
-            type="text"
-            placeholder="Search by asset ID, name, or returned by..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ flex: 1 }}
-          />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            style={{
-              minWidth: '180px',
-              padding: '8px 12px',
-              border: '1px solid #dce6f5',
-              borderRadius: '6px',
-              fontSize: '13.5px',
-              color: '#1a3a6b',
-              background: '#f8faff',
-              cursor: 'pointer',
-            }}
-          >
-            <option value="">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="received">Received</option>
-            <option value="completed">Completed</option>
-            <option value="rejected">Rejected</option>
-          </select>
-        </div>
-
-        {/* Table */}
-        {loading ? (
-          <Card>
-            <div style={{ textAlign: 'center', padding: '48px 0' }}>
-              <div style={{
-                width: '40px', height: '40px', borderRadius: '50%',
-                border: '3px solid #dce6f5', borderTopColor: '#1a3a6b',
-                animation: 'spin 0.8s linear infinite', margin: '0 auto',
-              }} />
-              <p style={{ marginTop: '16px', fontSize: '13px', color: '#7a90b8' }}>Loading returns...</p>
-            </div>
-          </Card>
-        ) : (
-          <Card>
+          ) : (
             <Table>
               <TableHeader>
-                <TableHead>ASSET ID</TableHead>
-                <TableHead>ASSET NAME</TableHead>
-                <TableHead>RETURNED BY</TableHead>
-                <TableHead>RETURN DATE</TableHead>
-                <TableHead>STATUS</TableHead>
-                <TableHead>CONDITION</TableHead>
-                <TableHead>ACTIONS</TableHead>
+                <TableHead>{t('asset_id_col')}</TableHead>
+                <TableHead>{t('asset_name_col')}</TableHead>
+                <TableHead>{t('returned_by_col')}</TableHead>
+                <TableHead>{t('return_date_col')}</TableHead>
+                <TableHead>{t('status_col')}</TableHead>
+                <TableHead>{t('condition_col')}</TableHead>
+                <TableHead>{t('actions_col')}</TableHead>
               </TableHeader>
               <TableBody>
-                {filteredReturns.length === 0 ? (
-                  <TableRow>
-                    <TableCell className="text-center py-12 col-span-7">
-                      No return requests found
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredReturns.map((r) => {
-                    const assetIdLabel = r.asset?.assetId ?? r.assetId;
-                    const assetName = r.asset?.name ?? '—';
-                    const returnerLabel = r.returner
-                      ? `${r.returner.firstName} ${r.returner.lastName}`
-                      : r.returnedBy;
+                {filteredReturns.map((r) => {
+                  const assetIdLabel = r.asset?.assetId ?? r.assetId;
+                  const assetName = r.asset?.name ?? '—';
+                  const returnerLabel = r.returner
+                    ? `${r.returner.firstName} ${r.returner.lastName}`
+                    : r.returnedBy;
 
-                    return (
-                      <TableRow key={r.id}>
-                        <TableCell className="font-mono text-sm">
-                          {assetIdLabel}
-                        </TableCell>
-                        <TableCell className="font-medium">{assetName}</TableCell>
-                        <TableCell>
-                          <div>{returnerLabel}</div>
-                          {r.returner?.workUnit && (
-                            <div className="text-xs text-gray-500">{r.returner.workUnit}</div>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-sm text-gray-500">
-                          {formatDate(r.returnDate)}
-                        </TableCell>
-                        <TableCell>
+                  return (
+                    <TableRow key={r.id}>
+                      <TableCell className="font-mono text-sm">
+                        {assetIdLabel}
+                      </TableCell>
+                      <TableCell className="font-medium">{assetName}</TableCell>
+                      <TableCell>
+                        <div>{returnerLabel}</div>
+                        {r.returner?.workUnit && (
+                          <div className="text-xs text-gray-500">{r.returner.workUnit}</div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-500">
+                        {formatDate(r.returnDate)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={
+                          r.status === 'completed' ? 'success' :
+                          r.status === 'pending' ? 'warning' :
+                          r.status === 'received' ? 'info' :
+                          r.status === 'rejected' ? 'danger' : 'default'
+                        }>
+                          {getStatusLabel(r.status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {r.returnCondition ? (
                           <Badge variant={
-                            r.status === 'completed' ? 'success' :
-                            r.status === 'pending' ? 'warning' :
-                            r.status === 'received' ? 'info' :
-                            r.status === 'rejected' ? 'danger' : 'default'
+                            r.returnCondition === 'excellent' || r.returnCondition === 'good' ? 'success' :
+                            r.returnCondition === 'fair' ? 'warning' : 'danger'
                           }>
-                            {getStatusLabel(r.status)}
+                            {({
+                              excellent: t('condition_excellent'),
+                              good: t('condition_good'),
+                              fair: t('condition_fair'),
+                              poor: t('condition_poor')
+                            }[r.returnCondition] ?? r.returnCondition)}
                           </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {r.returnCondition ? (
-                            <Badge variant={
-                              r.returnCondition === 'excellent' || r.returnCondition === 'good' ? 'success' :
-                              r.returnCondition === 'fair' ? 'warning' : 'danger'
-                            }>
-                              {r.returnCondition}
-                            </Badge>
-                          ) : (
-                            <span className="text-xs text-gray-500 italic">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                            {/* View — always visible */}
-                            <Button size="sm" variant="ghost" onClick={() => setViewTarget(r)}>
-                              View
-                            </Button>
+                        ) : (
+                          <span className="text-xs text-gray-500 italic">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2 flex-wrap">
+                          {/* View — always visible */}
+                          <Button size="sm" variant="ghost" onClick={() => setViewTarget(r)}>
+                            {t('view')}
+                          </Button>
 
-                            {/* Accept — officer only, status: pending */}
-                            {isOfficer && r.status === 'pending' && (
+                          {/* Accept — officer only, status: pending */}
+                          {isOfficer && r.status === 'pending' && (
+                            <Button
+                              size="sm"
+                              variant="primary"
+                              disabled={actionLoading === r.id + '_receive'}
+                              onClick={() => handleReceive(r.id)}
+                            >
+                              {actionLoading === r.id + '_receive' ? '...' : t('accept')}
+                            </Button>
+                          )}
+
+                          {/* Reject on pending — officer only */}
+                          {isOfficer && r.status === 'pending' && (
+                            <Button
+                              size="sm"
+                              variant="danger"
+                              onClick={() => setRejectTarget(r.id)}
+                            >
+                              {t('reject')}
+                            </Button>
+                          )}
+
+                          {/* Confirm Received / Reject — officer only, status: received */}
+                          {isOfficer && r.status === 'received' && (
+                            <>
                               <Button
                                 size="sm"
                                 variant="primary"
-                                disabled={actionLoading === r.id + '_receive'}
-                                onClick={() => handleReceive(r.id)}
+                                disabled={actionLoading === r.id + '_approve'}
+                                onClick={() => handleApprove(r.id)}
                               >
-                                {actionLoading === r.id + '_receive' ? '...' : 'Accept'}
+                                {actionLoading === r.id + '_approve' ? '...' : t('confirm_received')}
                               </Button>
-                            )}
-
-                            {/* Reject on pending — officer only */}
-                            {isOfficer && r.status === 'pending' && (
                               <Button
                                 size="sm"
                                 variant="danger"
                                 onClick={() => setRejectTarget(r.id)}
                               >
-                                Reject
+                                {t('reject')}
                               </Button>
-                            )}
-
-                            {/* Confirm Received / Reject — officer only, status: received */}
-                            {isOfficer && r.status === 'received' && (
-                              <>
-                                <Button
-                                  size="sm"
-                                  variant="primary"
-                                  disabled={actionLoading === r.id + '_approve'}
-                                  onClick={() => handleApprove(r.id)}
-                                >
-                                  {actionLoading === r.id + '_approve' ? '...' : 'Confirm Received'}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="danger"
-                                  onClick={() => setRejectTarget(r.id)}
-                                >
-                                  Reject
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
-          </Card>
-        )}
+          )}
+        </Card>
       </div>
 
       {/* Modals */}

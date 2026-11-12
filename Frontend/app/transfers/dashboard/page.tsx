@@ -2,6 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import {
+  ChartBarIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  SparklesIcon,
+  XCircleIcon,
+  NoSymbolIcon
+} from '@heroicons/react/24/outline';
 
 interface Transfer {
   id: string;
@@ -81,14 +89,15 @@ export default function TransferDashboard() {
   };
 
   const getStatusIcon = (status: string) => {
-    const icons: Record<string, string> = {
-      pending: '⏳',
-      approved: '✅',
-      completed: '🎉',
-      rejected: '❌',
-      cancelled: '🚫',
+    const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+      pending: ClockIcon,
+      approved: CheckCircleIcon,
+      completed: SparklesIcon,
+      rejected: XCircleIcon,
+      cancelled: NoSymbolIcon,
     };
-    return icons[status] || '📋';
+    const IconComponent = iconMap[status] || ChartBarIcon;
+    return <IconComponent className="w-4 h-4" />;
   };
 
   if (loading) {
@@ -121,7 +130,7 @@ export default function TransferDashboard() {
                 <p className="text-sm font-medium text-gray-600">Total Transfers</p>
                 <p className="mt-2 text-3xl font-bold text-gray-900">{stats.total}</p>
               </div>
-              <div className="text-4xl">📊</div>
+              <ChartBarIcon className="w-12 h-12 text-[#1E9FE8]" />
             </div>
           </div>
 
@@ -131,7 +140,7 @@ export default function TransferDashboard() {
                 <p className="text-sm font-medium text-gray-600">Pending</p>
                 <p className="mt-2 text-3xl font-bold text-yellow-600">{stats.pending}</p>
               </div>
-              <div className="text-4xl">⏳</div>
+              <ClockIcon className="w-12 h-12 text-yellow-600" />
             </div>
           </div>
 
@@ -141,7 +150,7 @@ export default function TransferDashboard() {
                 <p className="text-sm font-medium text-gray-600">Approved</p>
                 <p className="mt-2 text-3xl font-bold text-blue-600">{stats.approved}</p>
               </div>
-              <div className="text-4xl">✅</div>
+              <CheckCircleIcon className="w-12 h-12 text-[#1E9FE8]" />
             </div>
           </div>
 
@@ -151,7 +160,7 @@ export default function TransferDashboard() {
                 <p className="text-sm font-medium text-gray-600">Completed</p>
                 <p className="mt-2 text-3xl font-bold text-green-600">{stats.completed}</p>
               </div>
-              <div className="text-4xl">🎉</div>
+              <SparklesIcon className="w-12 h-12 text-green-600" />
             </div>
           </div>
         </div>
@@ -161,24 +170,24 @@ export default function TransferDashboard() {
           <h2 className="text-xl font-bold text-gray-900 mb-6">Transfer Workflow</h2>
           <div className="flex items-center justify-between">
             <div className="flex flex-col items-center flex-1">
-              <div className="w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center text-2xl mb-2">
-                ⏳
+              <div className="w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center mb-2">
+                <ClockIcon className="w-8 h-8 text-yellow-600" />
               </div>
               <p className="text-sm font-medium text-gray-900">Pending</p>
               <p className="text-xs text-gray-500">Awaiting recipient</p>
             </div>
             <div className="flex-1 h-1 bg-gray-300"></div>
             <div className="flex flex-col items-center flex-1">
-              <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-2xl mb-2">
-                ✅
+              <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-2">
+                <CheckCircleIcon className="w-8 h-8 text-[#1E9FE8]" />
               </div>
               <p className="text-sm font-medium text-gray-900">Approved</p>
               <p className="text-xs text-gray-500">Awaiting property officer</p>
             </div>
             <div className="flex-1 h-1 bg-gray-300"></div>
             <div className="flex flex-col items-center flex-1">
-              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center text-2xl mb-2">
-                🎉
+              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-2">
+                <SparklesIcon className="w-8 h-8 text-green-600" />
               </div>
               <p className="text-sm font-medium text-gray-900">Completed</p>
               <p className="text-xs text-gray-500">Transfer finalized</p>

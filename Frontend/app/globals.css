@@ -5,6 +5,7 @@
   --animate-fade-in: fade-in 0.6s ease-out;
   --animate-fade-in-down: fade-in-down 0.6s ease-out;
   --animate-fade-in-up: fade-in-up 0.6s ease-out;
+  --animate-scale-in: scale-in 0.3s ease-out;
   --animate-shake: shake 0.5s ease-in-out;
 }
 
@@ -66,6 +67,17 @@
   }
 }
 
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @utility animation-delay-2000 {
   animation-delay: 2s;
 }
@@ -78,6 +90,13 @@
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
+  
+  /* Woldia University Brand Colors */
+  --brand-primary: #1E9FE8;        /* Logo main blue */
+  --brand-primary-light: #5BC0EB;  /* Logo light blue */
+  --brand-primary-dark: #1578B8;   /* Darker blue for hover */
+  --brand-accent: #FF9F7F;         /* Logo coral/peach accent */
+  --brand-accent-light: #FFB399;   /* Lighter coral */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -366,4 +385,78 @@ html.dark .text-red-600 {
 
 html.dark .text-green-600 {
   color: #86efac !important;
+}
+
+/* Brand Color Utilities */
+.bg-brand-primary {
+  background-color: var(--brand-primary);
+}
+
+.bg-brand-primary-light {
+  background-color: var(--brand-primary-light);
+}
+
+.bg-brand-primary-dark {
+  background-color: var(--brand-primary-dark);
+}
+
+.bg-brand-accent {
+  background-color: var(--brand-accent);
+}
+
+.text-brand-primary {
+  color: var(--brand-primary);
+}
+
+.text-brand-primary-light {
+  color: var(--brand-primary-light);
+}
+
+.text-brand-primary-dark {
+  color: var(--brand-primary-dark);
+}
+
+.text-brand-accent {
+  color: var(--brand-accent);
+}
+
+.border-brand-primary {
+  border-color: var(--brand-primary);
+}
+
+.border-brand-primary-light {
+  border-color: var(--brand-primary-light);
+}
+
+.hover\:bg-brand-primary:hover {
+  background-color: var(--brand-primary);
+}
+
+.hover\:bg-brand-primary-dark:hover {
+  background-color: var(--brand-primary-dark);
+}
+
+.hover\:text-brand-primary:hover {
+  color: var(--brand-primary);
+}
+
+.hover\:border-brand-primary:hover {
+  border-color: var(--brand-primary);
+}
+
+.focus\:ring-brand-primary:focus {
+  --tw-ring-color: var(--brand-primary);
+}
+
+.focus\:border-brand-primary:focus {
+  border-color: var(--brand-primary);
+}
+
+/* Gradient utilities with brand colors */
+.bg-gradient-brand {
+  background: linear-gradient(135deg, var(--brand-primary-light) 0%, var(--brand-primary) 100%);
+}
+
+.bg-gradient-brand-dark {
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%);
 }

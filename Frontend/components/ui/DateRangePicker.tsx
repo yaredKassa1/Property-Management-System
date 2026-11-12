@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button } from './Button';
+import { CalendarIcon } from '@heroicons/react/24/outline';
 
 interface DateRangePickerProps {
   onApply: (startDate: string, endDate: string) => void;
@@ -41,13 +42,14 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({ onApply, onRes
   };
 
   return (
-    <div className="relative z-50">
+    <div className="relative z-40">
       <Button
         onClick={() => setIsOpen(!isOpen)}
         variant="outline"
         className="flex items-center gap-2"
       >
-        📅 Date Range
+        <CalendarIcon className="w-4 h-4" />
+        Date Range
         {(startDate || endDate) && (
           <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs">
             Filtered
@@ -58,10 +60,10 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({ onApply, onRes
       {isOpen && (
         <>
           <div
-            className="fixed inset-0 z-[999]"
+            className="fixed inset-0 z-[35]"
             onClick={() => setIsOpen(false)}
           />
-          <div className="fixed top-32 right-4 w-80 bg-white rounded-lg shadow-2xl border border-gray-200 z-[1000]">
+          <div className="fixed top-40 right-4 w-80 bg-white rounded-lg shadow-2xl border border-gray-200 z-[40]">
             <div className="p-4 border-b border-gray-200">
               <h3 className="text-sm font-semibold text-gray-900">Filter by Date Range</h3>
             </div>

@@ -24,7 +24,7 @@ router.post('/:id/approve',
     param('id').isUUID(),
     body('decision').isIn(['approve', 'reject']).withMessage('Decision must be approve or reject'),
     body('comments').optional().trim(),
-    body('permittedAmount').optional().isInt({ min: 1 }),
+    body('permittedAmount').optional().isInt({ min: 1 }).withMessage('Permitted amount must be at least 1'),
     body('signature').optional().trim()
   ],
   validate,
@@ -33,6 +33,19 @@ router.post('/:id/approve',
       const { decision, comments, signature } = req.body;
       const permittedAmount = req.body.permittedAmount ? parseInt(req.body.permittedAmount) : undefined;
       const workflow = await workflowService.getWorkflowStatus(req.params.id);
+      
+      // Additional validation: Check if permitted amount exceeds requested quantity
+      if (permittedAmount !== undefined && workflow.requestId) {
+        const { Request } = require('../models');
+        const request = await Request.findByPk(workflow.requestId);
+        if (request && permittedAmount > request.quantity) {
+          return res.status(400).json({ 
+            success: false, 
+            message: `Permitted quantity (${permittedAmount}) cannot exceed requested quantity (${request.quantity})` 
+          });
+        }
+      }
+      
       let result;
       if (workflow.currentState === 'pending_approval') {
         result = await approvalHandlers.handleApprovalAuthorityAction(req.params.id, {
@@ -53,10 +66,15 @@ router.post('/:id/approve',
 // POST /api/workflows/:id/property-officer-complete
 router.post('/:id/property-officer-complete',
   requireRole('property_officer', 'administrator'),
-  [param('id').isUUID()], validate,
+  [
+    param('id').isUUID(),
+    body('signature').optional().trim()
+  ],
+  validate,
   async (req, res, next) => {
     try {
-      const result = await approvalHandlers.handlePropertyOfficerAction(req.params.id, { actorId: req.user.id });
+      const { signature } = req.body;
+      const result = await approvalHandlers.handlePropertyOfficerAction(req.params.id, { actorId: req.user.id, signature });
       res.json({ success: true, data: result });
     } catch (error) { next(error); }
   }

@@ -12,8 +12,18 @@ class ApprovalHandlers {
 
   async handleApprovalAuthorityAction(workflowId, action) {
     return await sequelize.transaction(async (transaction) => {
-      const { actorId, decision, comments, permittedAmount } = action;
-      const workflow = await workflowService.processApproval(workflowId, { actorId, actorRole: 'approval_authority', decision, comments, permittedAmount }, transaction);
+      const { actorId, decision, comments, permittedAmount, signature } = action;
+      
+      // Validate permitted amount does not exceed requested quantity
+      if (permittedAmount !== undefined) {
+        const workflow = await workflowService.getWorkflowStatus(workflowId);
+        const request = await Request.findByPk(workflow.requestId, { transaction });
+        if (request && permittedAmount > request.quantity) {
+          throw new Error(`Permitted quantity (${permittedAmount}) cannot exceed requested quantity (${request.quantity})`);
+        }
+      }
+      
+      const workflow = await workflowService.processApproval(workflowId, { actorId, actorRole: 'approval_authority', decision, comments, permittedAmount, signature }, transaction);
       const request = await Request.findByPk(workflow.requestId, { transaction });
       const requestor = await User.findByPk(request.requestedBy);
       const requestorName = `${requestor?.firstName || ''} ${requestor?.lastName || ''}`.trim();
@@ -36,8 +46,8 @@ class ApprovalHandlers {
 
   async handleVPAction(workflowId, action) {
     return await sequelize.transaction(async (transaction) => {
-      const { actorId, decision, comments } = action;
-      const workflow = await workflowService.processApproval(workflowId, { actorId, actorRole: 'vice_president', decision, comments }, transaction);
+      const { actorId, decision, comments, signature } = action;
+      const workflow = await workflowService.processApproval(workflowId, { actorId, actorRole: 'vice_president', decision, comments, signature }, transaction);
       const request = await Request.findByPk(workflow.requestId, { transaction });
       const requestor = await User.findByPk(request.requestedBy);
       const requestorName = `${requestor?.firstName || ''} ${requestor?.lastName || ''}`.trim();
@@ -56,8 +66,8 @@ class ApprovalHandlers {
 
   async handlePropertyOfficerAction(workflowId, action) {
     return await sequelize.transaction(async (transaction) => {
-      const { actorId } = action;
-      const workflow = await workflowService.advanceWorkflow(workflowId, { type: 'property_officer_completed', data: { completedBy: actorId }, triggeredBy: actorId }, transaction);
+      const { actorId, signature } = action;
+      const workflow = await workflowService.advanceWorkflow(workflowId, { type: 'property_officer_completed', data: { completedBy: actorId, signature }, triggeredBy: actorId }, transaction);
       const request = await Request.findByPk(workflow.requestId, { transaction });
       const requestor = await User.findByPk(request.requestedBy);
       const requestorName = `${requestor?.firstName || ''} ${requestor?.lastName || ''}`.trim();

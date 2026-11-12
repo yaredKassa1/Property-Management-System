@@ -280,25 +280,48 @@ const createUser = async (req, res, next) => {
       });
     }
 
-    if (wing === 'academic' && !college) {
-      return res.status(400).json({
-        success: false,
-        message: 'College is required for academic wing users'
-      });
+    // STRICT HIERARCHY VALIDATION FOR ACADEMIC WING
+    if (wing === 'academic') {
+      if (!college) {
+        return res.status(400).json({
+          success: false,
+          message: 'College is required for academic wing users'
+        });
+      }
+      if (!department) {
+        return res.status(400).json({
+          success: false,
+          message: 'Department is required for academic wing users'
+        });
+      }
+      // For approval authorities and staff, enforce complete hierarchy
+      if (['approval_authority', 'staff'].includes(role)) {
+        if (!college || !department) {
+          return res.status(400).json({
+            success: false,
+            message: `${role === 'approval_authority' ? 'Approval authorities' : 'Staff'} in academic wing must have college and department specified for proper hierarchy matching`
+          });
+        }
+      }
     }
 
-    if (wing === 'academic' && !department) {
-      return res.status(400).json({
-        success: false,
-        message: 'Department is required for academic wing users'
-      });
-    }
-
-    if (wing === 'administrative' && !administrativeUnit) {
-      return res.status(400).json({
-        success: false,
-        message: 'Administrative unit is required for administrative wing users'
-      });
+    // STRICT HIERARCHY VALIDATION FOR ADMINISTRATIVE WING
+    if (wing === 'administrative') {
+      if (!administrativeUnit) {
+        return res.status(400).json({
+          success: false,
+          message: 'Administrative unit is required for administrative wing users'
+        });
+      }
+      // For approval authorities and staff, enforce complete hierarchy
+      if (['approval_authority', 'staff'].includes(role)) {
+        if (!administrativeUnit) {
+          return res.status(400).json({
+            success: false,
+            message: `${role === 'approval_authority' ? 'Approval authorities' : 'Staff'} in administrative wing must have administrative unit specified for proper hierarchy matching`
+          });
+        }
+      }
     }
 
     // Check if username already exists
@@ -674,7 +697,7 @@ const getFilteredApprovalAuthorities = async (req, res, next) => {
           school: staff.school,
           department: staff.department
         },
-        attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'role', 'college', 'school', 'department', 'administrativeUnit', 'wing'],
+        attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'role', 'college', 'school', 'department', 'administrativeUnit', 'wing', 'workUnit'],
         order: [['firstName', 'ASC'], ['lastName', 'ASC']]
       });
     } else {
@@ -687,7 +710,7 @@ const getFilteredApprovalAuthorities = async (req, res, next) => {
           isActive: true,
           administrativeUnit: staff.administrativeUnit
         },
-        attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'role', 'college', 'school', 'department', 'administrativeUnit', 'wing'],
+        attributes: ['id', 'username', 'firstName', 'middleName', 'lastName', 'role', 'college', 'school', 'department', 'administrativeUnit', 'wing', 'workUnit'],
         order: [['firstName', 'ASC'], ['lastName', 'ASC']]
       });
     }

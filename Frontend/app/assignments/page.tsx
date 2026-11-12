@@ -9,6 +9,20 @@ import { Select } from '@/components/ui/Select';
 import { Badge } from '@/components/ui/Badge';
 import { api } from '@/lib/api';
 import { formatDateTime } from '@/lib/utils';
+import { useLanguage } from '@/lib/contexts';
+import {
+  CubeIcon,
+  CheckCircleIcon,
+  ClipboardDocumentListIcon,
+  UserPlusIcon,
+  UserMinusIcon,
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  XMarkIcon,
+  MapPinIcon,
+  BuildingOfficeIcon,
+  UserIcon
+} from '@heroicons/react/24/outline';
 
 interface Asset {
   id: string;
@@ -41,6 +55,7 @@ interface User {
 }
 
 export default function AssignmentsPage() {
+  const { t } = useLanguage();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -200,64 +215,72 @@ export default function AssignmentsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Asset Assignments</h1>
-          <p className="text-gray-600 mt-1">Assign and manage asset allocations to staff members</p>
+        {/* Professional Header Card with Short Accent Line */}
+        <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+          <div className="p-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('asset_assignments')}</h1>
+              {/* Short Horizontal Accent Line */}
+              <div className="h-1 w-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full mb-3"></div>
+              <p className="text-sm text-gray-600">{t('assign_manage_allocations')}</p>
+            </div>
+          </div>
         </div>
 
         {/* Success/Error Messages */}
         {success && (
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
-            ✅ {success}
+          <div className="bg-green-50 border-l-4 border-green-500 text-green-800 px-4 py-3 rounded-lg flex items-center gap-3 shadow-sm">
+            <CheckCircleIcon className="w-5 h-5 flex-shrink-0" />
+            <span>{success}</span>
           </div>
         )}
         
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            ⚠️ {error}
+          <div className="bg-red-50 border-l-4 border-red-500 text-red-800 px-4 py-3 rounded-lg flex items-center gap-3 shadow-sm">
+            <XMarkIcon className="w-5 h-5 flex-shrink-0" />
+            <span>{error}</span>
           </div>
         )}
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="border border-gray-200">
+          <Card className="border border-gray-200 hover:shadow-lg transition-shadow duration-200">
             <div className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Assets</p>
+                  <p className="text-sm font-medium text-gray-600">{t('total_assets_count')}</p>
                   <p className="text-3xl font-bold text-gray-900 mt-2">{filteredAssets.length}</p>
                 </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-2xl">
-                  📦
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <CubeIcon className="w-7 h-7 text-blue-600" />
                 </div>
               </div>
             </div>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-gray-200 hover:shadow-lg transition-shadow duration-200">
             <div className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Assigned Assets</p>
+                  <p className="text-sm font-medium text-gray-600">{t('assigned_assets')}</p>
                   <p className="text-3xl font-bold text-green-600 mt-2">{assignedAssets.length}</p>
                 </div>
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center text-2xl">
-                  ✅
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                  <CheckCircleIcon className="w-7 h-7 text-green-600" />
                 </div>
               </div>
             </div>
           </Card>
 
-          <Card className="border border-gray-200">
+          <Card className="border border-gray-200 hover:shadow-lg transition-shadow duration-200">
             <div className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Available Assets</p>
+                  <p className="text-sm font-medium text-gray-600">{t('available_assets')}</p>
                   <p className="text-3xl font-bold text-orange-600 mt-2">{availableAssets.length}</p>
                 </div>
-                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center text-2xl">
-                  📋
+                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <ClipboardDocumentListIcon className="w-7 h-7 text-orange-600" />
                 </div>
               </div>
             </div>
@@ -267,29 +290,37 @@ export default function AssignmentsPage() {
         {/* Filters */}
         <Card className="border border-gray-200">
           <div className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <FunnelIcon className="w-5 h-5 text-gray-600" />
+              <h3 className="text-sm font-semibold text-gray-700">{t('filter')} {t('assets')}</h3>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Input
-                placeholder="Search by Asset ID or Name..."
-                value={searchAsset}
-                onChange={(e) => setSearchAsset(e.target.value)}
-              />
+              <div className="relative">
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Input
+                  placeholder={t('search_asset_placeholder')}
+                  value={searchAsset}
+                  onChange={(e) => setSearchAsset(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
               
               <select
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1E9FE8] focus:border-[#1E9FE8] bg-white text-gray-900"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
-                <option value="all">All Status</option>
-                <option value="available">Available</option>
-                <option value="assigned">Assigned</option>
+                <option value="all">{t('all_status')}</option>
+                <option value="available">{t('available')}</option>
+                <option value="assigned">{t('assigned')}</option>
               </select>
 
               <select
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1E9FE8] focus:border-[#1E9FE8] bg-white text-gray-900"
                 value={workUnitFilter}
                 onChange={(e) => setWorkUnitFilter(e.target.value)}
               >
-                <option value="all">All Work Units</option>
+                <option value="all">{t('all_work_units')}</option>
                 {workUnits.length > 0 && workUnits.map(dept => (
                   <option key={dept} value={dept}>{dept}</option>
                 ))}
@@ -302,19 +333,21 @@ export default function AssignmentsPage() {
                   setWorkUnitFilter('all');
                 }}
                 variant="outline"
+                className="flex items-center justify-center gap-2"
               >
-                Clear Filters
+                <XMarkIcon className="w-4 h-4" />
+                {t('clear_filters')}
               </Button>
             </div>
           </div>
         </Card>
 
         {/* Assets Table */}
-        <Card title="Asset Assignment List" className="border border-gray-200">
+        <Card title={t('asset_assignment_list')} className="border border-gray-200">
           {loading ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-              <p className="text-gray-600 mt-4">Loading assets...</p>
+              <p className="text-gray-600 mt-4">{t('loading_assets')}</p>
             </div>
           ) : filteredAssets.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
@@ -331,7 +364,7 @@ export default function AssignmentsPage() {
                   d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
                 />
               </svg>
-              <p>No assets found</p>
+              <p>{t('no_assets_found_filter')}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -339,22 +372,22 @@ export default function AssignmentsPage() {
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Asset Info
+                      {t('asset_info')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Category
+                      {t('category')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Location
+                      {t('location')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
+                      {t('status')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Assigned To
+                      {t('col_assigned_to')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
+                      {t('actions')}
                     </th>
                   </tr>
                 </thead>
@@ -367,7 +400,7 @@ export default function AssignmentsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <Badge variant={asset.category === 'fixed' ? 'info' : 'warning'}>
-                          {asset.category === 'fixed' ? 'Fixed Asset' : 'Fixed-Consumable'}
+                          {asset.category === 'fixed' ? t('fixed_assets') : t('fixed_consumable')}
                         </Badge>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900">
@@ -380,7 +413,7 @@ export default function AssignmentsPage() {
                             asset.status === 'available' ? 'info' : 'default'
                           }
                         >
-                          {asset.status}
+                          {asset.status === 'assigned' ? t('assigned') : asset.status === 'available' ? t('available') : asset.status}
                         </Badge>
                       </td>
                       <td className="px-6 py-4">
@@ -392,11 +425,11 @@ export default function AssignmentsPage() {
                                 : asset.assignedUser.fullName}
                             </div>
                             <div className="text-xs text-gray-500">
-                              {asset.assignedUser.workUnit || 'No department'}
+                              {asset.assignedUser.workUnit || t('no_work_unit')}
                             </div>
                           </div>
                         ) : (
-                          <span className="text-sm text-gray-500 italic">Unassigned</span>
+                          <span className="text-sm text-gray-500 italic">{t('unassigned')}</span>
                         )}
                       </td>
                       <td className="px-6 py-4 text-sm">
@@ -404,16 +437,20 @@ export default function AssignmentsPage() {
                           <Button
                             size="sm"
                             onClick={() => openAssignModal(asset)}
+                            className="inline-flex items-center gap-1.5"
                           >
-                            Assign
+                            <UserPlusIcon className="w-4 h-4" />
+                            {t('assign')}
                           </Button>
                         ) : asset.status === 'assigned' ? (
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => openUnassignModal(asset)}
+                            className="inline-flex items-center gap-1.5"
                           >
-                            Unassign
+                            <UserMinusIcon className="w-4 h-4" />
+                            {t('unassign')}
                           </Button>
                         ) : (
                           <span className="text-gray-400">N/A</span>
@@ -431,35 +468,46 @@ export default function AssignmentsPage() {
         {showAssignModal && selectedAsset && (
           <>
             <div
-              className="fixed inset-0 bg-black bg-opacity-50 z-[999]"
+              className="fixed inset-0 backdrop-blur-sm bg-black/20 z-[999]"
               onClick={() => !assignmentLoading && setShowAssignModal(false)}
             />
             <div className="fixed inset-0 flex items-center justify-center z-[1000] p-4">
               <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                 <div className="p-6 border-b border-gray-200">
-                  <h2 className="text-2xl font-bold text-gray-900">Assign Asset</h2>
-                  <p className="text-gray-600 mt-1">Assign asset to a staff member</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <UserPlusIcon className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">{t('assign_asset')}</h2>
+                      <p className="text-gray-600 text-sm mt-0.5">{t('assign_asset_to_staff')}</p>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="p-6 space-y-6">
                   {/* Asset Info */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-gray-900 mb-2">Asset Details</h3>
+                  <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <CubeIcon className="w-5 h-5 text-blue-600" />
+                      <h3 className="font-semibold text-gray-900">{t('asset_details')}</h3>
+                    </div>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="text-gray-600">Tag Number:</span>
+                        <span className="text-gray-600">{t('tag_no')}:</span>
                         <span className="ml-2 font-mono font-bold text-blue-700">{selectedAsset.tagNumber || selectedAsset.assetId}</span>
                       </div>
                       <div>
-                        <span className="text-gray-600">Name:</span>
+                        <span className="text-gray-600">{t('name')}:</span>
                         <span className="ml-2 font-medium text-gray-900">{selectedAsset.name}</span>
                       </div>
                       <div>
-                        <span className="text-gray-600">Category:</span>
+                        <span className="text-gray-600">{t('category')}:</span>
                         <span className="ml-2 font-medium text-gray-900">{selectedAsset.category}</span>
                       </div>
-                      <div>
-                        <span className="text-gray-600">Current Location:</span>
+                      <div className="flex items-center gap-1">
+                        <MapPinIcon className="w-4 h-4 text-gray-500" />
+                        <span className="text-gray-600">{t('location')}:</span>
                         <span className="ml-2 font-medium text-gray-900">{selectedAsset.location || 'Store'}</span>
                       </div>
                     </div>
@@ -467,32 +515,34 @@ export default function AssignmentsPage() {
 
                   {/* Select User */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Select Staff Member <span className="text-red-500">*</span>
+                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                      <UserIcon className="w-4 h-4" />
+                      {t('select_staff_member')} <span className="text-red-500">*</span>
                     </label>
                     <select
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1E9FE8] focus:border-[#1E9FE8] bg-white text-gray-900"
                       value={selectedUserId}
                       onChange={(e) => setSelectedUserId(e.target.value)}
                       required
                     >
-                      <option value="">-- Select a staff member --</option>
+                      <option value="">{t('select_staff_placeholder')}</option>
                       {users.length > 0 ? (
                         users.map((user) => (
                           <option key={user.id} value={user.id}>
-                            {user.fullName} ({user.username}) - {user.workUnit || 'No Work Unit'}
+                            {user.fullName} ({user.username}) - {user.workUnit || t('no_work_unit')}
                           </option>
                         ))
                       ) : (
-                        <option value="" disabled>No users available - Contact administrator</option>
+                        <option value="" disabled>{t('no_users_available')}</option>
                       )}
                     </select>
                   </div>
 
                   {/* Location */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Asset Location (where it will be placed)
+                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                      <MapPinIcon className="w-4 h-4" />
+                      {t('location')} (where it will be placed)
                     </label>
                     <div className="grid grid-cols-3 gap-3">
                       <div>
@@ -536,14 +586,14 @@ export default function AssignmentsPage() {
                   {/* Assignment Notes */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Assignment Notes (Optional)
+                      {t('assignment_notes')}
                     </label>
                     <textarea
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-400"
                       rows={2}
                       value={assignmentNotes}
                       onChange={(e) => setAssignmentNotes(e.target.value)}
-                      placeholder="Enter any notes about this assignment..."
+                      placeholder={t('assignment_notes_placeholder')}
                     />
                   </div>
                   {error && (
@@ -559,13 +609,13 @@ export default function AssignmentsPage() {
                     onClick={() => setShowAssignModal(false)}
                     disabled={assignmentLoading}
                   >
-                    Cancel
+                    {t('cancel')}
                   </Button>
                   <Button
                     onClick={handleAssignAsset}
                     disabled={!selectedUserId || assignmentLoading}
                   >
-                    {assignmentLoading ? 'Assigning...' : 'Assign Asset'}
+                    {assignmentLoading ? t('assigning') : t('assign_asset_btn')}
                   </Button>
                 </div>
               </div>
@@ -577,32 +627,37 @@ export default function AssignmentsPage() {
         {showUnassignModal && assetToUnassign && (
           <>
             <div
-              className="fixed inset-0 bg-black bg-opacity-50 z-[999]"
+              className="fixed inset-0 backdrop-blur-sm bg-black/20 z-[999]"
               onClick={() => !assignmentLoading && setShowUnassignModal(false)}
             />
             <div className="fixed inset-0 flex items-center justify-center z-[1000] p-4">
               <div className="bg-white rounded-lg shadow-2xl max-w-md w-full">
                 <div className="p-6 border-b border-gray-200">
-                  <h2 className="text-xl font-bold text-gray-900">Unassign Asset</h2>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                      <UserMinusIcon className="w-6 h-6 text-red-600" />
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-900">{t('unassign_asset')}</h2>
+                  </div>
                 </div>
 
                 <div className="p-6">
                   <p className="text-gray-700 mb-4">
-                    Are you sure you want to unassign this asset?
+                    {t('unassign_confirm')}
                   </p>
                   
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2">
                     <div>
-                      <span className="text-sm text-gray-600">Tag Number:</span>
+                      <span className="text-sm text-gray-600">{t('tag_no')}:</span>
                       <span className="ml-2 font-mono font-bold text-blue-700">{assetToUnassign.tagNumber || assetToUnassign.assetId}</span>
                     </div>
                     <div>
-                      <span className="text-sm text-gray-600">Name:</span>
+                      <span className="text-sm text-gray-600">{t('name')}:</span>
                       <span className="ml-2 font-medium text-gray-900">{assetToUnassign.name}</span>
                     </div>
                     {assetToUnassign.assignedUser && (
                       <div>
-                        <span className="text-sm text-gray-600">Currently assigned to:</span>
+                        <span className="text-sm text-gray-600">{t('currently_assigned_to')}</span>
                         <span className="ml-2 font-medium text-gray-900">
                           {assetToUnassign.assignedUser.fullName}
                         </span>
@@ -623,14 +678,14 @@ export default function AssignmentsPage() {
                     onClick={() => setShowUnassignModal(false)}
                     disabled={assignmentLoading}
                   >
-                    Cancel
+                    {t('cancel')}
                   </Button>
                   <Button
                     onClick={handleUnassignAsset}
                     disabled={assignmentLoading}
                     variant="outline"
                   >
-                    {assignmentLoading ? 'Unassigning...' : 'Unassign'}
+                    {assignmentLoading ? t('unassigning') : t('unassign')}
                   </Button>
                 </div>
               </div>

@@ -178,8 +178,8 @@ class ApiClient {
   async approveWorkflow(id: string, decision: 'approve' | 'reject', comments?: string, permittedAmount?: number, signature?: string) {
     return this.request(`/workflows/${id}/approve`, { method: 'POST', body: JSON.stringify({ decision, comments, permittedAmount, signature }) });
   }
-  async propertyOfficerComplete(id: string) {
-    return this.request(`/workflows/${id}/property-officer-complete`, { method: 'POST' });
+  async propertyOfficerComplete(id: string, signature?: string) {
+    return this.request(`/workflows/${id}/property-officer-complete`, { method: 'POST', body: JSON.stringify({ signature }) });
   }
   async markProcured(id: string, procurementDetails?: any) {
     return this.request(`/workflows/${id}/mark-procured`, { method: 'POST', body: JSON.stringify({ procurementDetails: procurementDetails || {} }) });

@@ -240,9 +240,28 @@ export default function TransferPrintPage() {
                     </div>
                   </div>
                 </div>
-                <div className="text-right col-span-2">
-                  <label className="font-semibold">Date:</label>
-                  <span className="ml-2">{transfer.transferDate}</span>
+              </div>
+
+              {/* Transfer Timeline */}
+              <div className="mb-6 p-4 bg-gray-50 border border-gray-300 rounded">
+                <h4 className="font-bold mb-3">Transfer Timeline</h4>
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <label className="font-semibold text-gray-700">Request Date:</label>
+                    <p className="mt-1">{transfer.transferDate}</p>
+                  </div>
+                  {transfer.approvalDate && (
+                    <div>
+                      <label className="font-semibold text-green-700">Approval Date:</label>
+                      <p className="mt-1">{new Date(transfer.approvalDate).toLocaleDateString('en-GB')}</p>
+                    </div>
+                  )}
+                  {transfer.completionDate && (
+                    <div>
+                      <label className="font-semibold text-blue-700">Completion Date:</label>
+                      <p className="mt-1">{new Date(transfer.completionDate).toLocaleDateString('en-GB')}</p>
+                    </div>
+                  )}
                 </div>
               </div>
 

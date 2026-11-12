@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Button } from './Button';
+import { useLanguage } from '@/lib/contexts';
 
 // ── Confirm Dialog ────────────────────────────────────────────────────────────
 
@@ -217,6 +218,7 @@ export function ApprovalDialog({
   onConfirm,
   onCancel,
 }: ApprovalDialogProps) {
+  const { t } = useLanguage();
   const [comments, setComments] = useState('');
   const [permittedAmount, setPermittedAmount] = useState('');
   const [signature, setSignature] = useState('');
@@ -267,7 +269,7 @@ export function ApprovalDialog({
           </div>
         </div>
         <div className="flex justify-end gap-3 pt-1">
-          <Button variant="outline" onClick={onCancel}>Cancel</Button>
+          <Button variant="outline" onClick={onCancel}>{t('cancel')}</Button>
           <Button
             disabled={!signature.trim()}
             onClick={() => onConfirm(comments, permittedAmount, signature)}
@@ -289,6 +291,7 @@ interface RejectionDialogProps {
 }
 
 export function RejectionDialog({ title, onConfirm, onCancel }: RejectionDialogProps) {
+  const { t } = useLanguage();
   const [reason, setReason] = useState('');
   const [signature, setSignature] = useState('');
 
@@ -323,7 +326,7 @@ export function RejectionDialog({ title, onConfirm, onCancel }: RejectionDialogP
           </div>
         </div>
         <div className="flex justify-end gap-3 pt-1">
-          <Button variant="outline" onClick={onCancel}>Cancel</Button>
+          <Button variant="outline" onClick={onCancel}>{t('cancel')}</Button>
           <Button
             variant="danger"
             disabled={!reason.trim() || !signature.trim()}

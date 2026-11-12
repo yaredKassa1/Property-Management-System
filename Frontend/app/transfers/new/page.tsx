@@ -18,7 +18,6 @@ export default function NewTransferPage() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [formData, setFormData] = useState({
     assetId: '', fromUserId: '', toUserId: '',
-    transferDate: new Date().toISOString().split('T')[0],
     reason: '', notes: '',
   });
 
@@ -171,10 +170,6 @@ export default function NewTransferPage() {
                 )}
               </div>
               <div className="border-t" />
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Transfer Date <span className="text-red-500">*</span></label>
-                <Input type="date" value={formData.transferDate} onChange={e => setFormData(p => ({ ...p, transferDate: e.target.value }))} required />
-              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Reason <span className="text-red-500">*</span></label>
                 <textarea className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"

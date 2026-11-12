@@ -9,6 +9,7 @@ import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { api } from '@/lib/api';
 import { AssetCategory, AssetCondition } from '@/lib/types';
+import { CheckCircleIcon } from '@heroicons/react/24/outline';
 
 const ITEM_CATEGORIES = [
   'Furniture and Fixtures',
@@ -109,7 +110,7 @@ export default function NewAssetPage() {
       {/* Toast notification */}
       {toast && (
         <div className="fixed top-6 right-6 z-[9999] bg-green-600 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 animate-fade-in-down">
-          <span className="text-lg">🏷️</span>
+          <CheckCircleIcon className="w-6 h-6" />
           <div>
             <p className="font-semibold text-sm">Asset Registered Successfully!</p>
             <p className="text-green-100 text-xs mt-0.5">Tag No. generated: <span className="font-mono font-bold text-white">{toast.split(': ')[1]}</span></p>

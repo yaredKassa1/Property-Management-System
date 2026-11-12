@@ -154,25 +154,25 @@ export default function ProfilePage() {
     setPwError('');
     setPwSuccess('');
     if (!pwData.currentPassword || !pwData.newPassword || !pwData.confirmPassword) {
-      setPwError('All password fields are required');
+      setPwError(t('all_password_fields_required'));
       return;
     }
     if (pwData.newPassword.length < 6) {
-      setPwError('New password must be at least 6 characters');
+      setPwError(t('new_password_min_6'));
       return;
     }
     if (pwData.newPassword !== pwData.confirmPassword) {
-      setPwError('New passwords do not match');
+      setPwError(t('passwords_do_not_match'));
       return;
     }
     setPwSaving(true);
     try {
       await api.changePassword(pwData.currentPassword, pwData.newPassword);
-      setPwSuccess('Password changed successfully');
+      setPwSuccess(t('password_changed_successfully'));
       setPwData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setTimeout(() => setPwSuccess(''), 3000);
     } catch (err: any) {
-      setPwError(err.message || 'Failed to change password');
+      setPwError(err.message || t('failed_to_change_password'));
     } finally {
       setPwSaving(false);
     }
@@ -529,8 +529,8 @@ export default function ProfilePage() {
         <div style={{ marginTop: '24px' }}>
           <Card>
             <div style={{ marginBottom: '20px' }}>
-              <h2 style={{ fontSize: '16px', fontWeight: 600, color: '#1a3a6b', margin: 0 }}>Change Password</h2>
-              <p style={{ fontSize: '12px', color: '#7a90b8', margin: '4px 0 0 0' }}>Update your account password</p>
+              <h2 style={{ fontSize: '16px', fontWeight: 600, color: '#1a3a6b', margin: 0 }}>{t('change_password')}</h2>
+              <p style={{ fontSize: '12px', color: '#7a90b8', margin: '4px 0 0 0' }}>{t('update_account_password')}</p>
             </div>
 
             {pwSuccess && (
@@ -547,41 +547,41 @@ export default function ProfilePage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', alignItems: 'end' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#4a5a7a', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
-                  Current Password *
+                  {t('current_password')} *
                 </label>
                 <Input
                   type="password"
                   value={pwData.currentPassword}
                   onChange={e => setPwData(p => ({ ...p, currentPassword: e.target.value }))}
-                  placeholder="Enter current password"
+                  placeholder={t('enter_current_password')}
                 />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#4a5a7a', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
-                  New Password *
+                  {t('new_password')} *
                 </label>
                 <Input
                   type="password"
                   value={pwData.newPassword}
                   onChange={e => setPwData(p => ({ ...p, newPassword: e.target.value }))}
-                  placeholder="Min 6 characters"
+                  placeholder={t('min_6_characters_placeholder')}
                 />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#4a5a7a', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
-                  Confirm New Password *
+                  {t('confirm_new_password')} *
                 </label>
                 <Input
                   type="password"
                   value={pwData.confirmPassword}
                   onChange={e => setPwData(p => ({ ...p, confirmPassword: e.target.value }))}
-                  placeholder="Repeat new password"
+                  placeholder={t('repeat_new_password')}
                 />
               </div>
             </div>
             <div style={{ marginTop: '16px' }}>
               <Button variant="primary" onClick={handlePasswordChange} disabled={pwSaving}>
-                {pwSaving ? 'Changing...' : 'Change Password'}
+                {pwSaving ? t('changing') : t('change_password_button')}
               </Button>
             </div>
           </Card>

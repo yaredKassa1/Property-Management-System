@@ -119,6 +119,11 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       comment: 'Timestamp when Property Officer completed the request'
     },
+    propertyOfficerSignature: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: 'Digital signature of Property Officer'
+    },
     // ── Purchase Department Stage ─────────────────────────────────────
     purchaseDepartmentNotifiedAt: {
       type: DataTypes.DATE,

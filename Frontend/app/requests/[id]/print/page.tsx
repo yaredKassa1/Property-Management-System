@@ -165,27 +165,39 @@ export default function RequestPrintPage() {
                   <div>
                     <label className="text-sm font-semibold text-gray-600">Approved By</label>
                     <p className="mt-1 text-gray-900">
-                      {request.approver ? `${request.approver.firstName} ${request.approver.lastName}` : 'N/A'}
+                      {(() => {
+                        const approver = (request as any).procurementWorkflow?.approvalAuthority || request.approver;
+                        return approver ? `${approver.firstName} ${approver.lastName}` : 'N/A';
+                      })()}
                     </p>
                   </div>
                   <div>
                     <label className="text-sm font-semibold text-gray-600">Approval Date</label>
                     <p className="mt-1 text-gray-900">
-                      {request.approvalDate ? new Date(request.approvalDate).toLocaleDateString() : 'N/A'}
+                      {(() => {
+                        const approvalDate = (request as any).procurementWorkflow?.approvalAuthorityTimestamp || request.approvalDate;
+                        return approvalDate ? new Date(approvalDate).toLocaleDateString() : 'N/A';
+                      })()}
                     </p>
                   </div>
-                  {request.permittedAmount !== undefined && request.permittedAmount !== null && (
-                    <div>
-                      <label className="text-sm font-semibold text-gray-600">Permitted Amount</label>
-                      <p className="mt-1 text-gray-900">{request.permittedAmount}</p>
-                    </div>
-                  )}
-                  {request.approvalNotes && (
-                    <div className="col-span-2">
-                      <label className="text-sm font-semibold text-gray-600">Approval Notes</label>
-                      <p className="mt-1 text-gray-900">{request.approvalNotes}</p>
-                    </div>
-                  )}
+                  {(() => {
+                    const permittedAmount = (request as any).procurementWorkflow?.permittedAmount ?? request.permittedAmount;
+                    return permittedAmount !== undefined && permittedAmount !== null ? (
+                      <div>
+                        <label className="text-sm font-semibold text-gray-600">Permitted Amount</label>
+                        <p className="mt-1 text-gray-900">{permittedAmount}</p>
+                      </div>
+                    ) : null;
+                  })()}
+                  {(() => {
+                    const approvalNotes = (request as any).procurementWorkflow?.approvalAuthorityComments || request.approvalNotes;
+                    return approvalNotes ? (
+                      <div className="col-span-2">
+                        <label className="text-sm font-semibold text-gray-600">Approval Notes</label>
+                        <p className="mt-1 text-gray-900">{approvalNotes}</p>
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
               </div>
             )}
@@ -198,13 +210,19 @@ export default function RequestPrintPage() {
                   <div>
                     <label className="text-sm font-semibold text-gray-600">Completed By</label>
                     <p className="mt-1 text-gray-900">
-                      {request.completer ? `${request.completer.firstName} ${request.completer.lastName}` : 'Property Officer'}
+                      {(() => {
+                        const completer = (request as any).procurementWorkflow?.propertyOfficer || request.completer;
+                        return completer ? `${completer.firstName} ${completer.lastName}` : 'Property Officer';
+                      })()}
                     </p>
                   </div>
                   <div>
                     <label className="text-sm font-semibold text-gray-600">Completion Date</label>
                     <p className="mt-1 text-gray-900">
-                      {request.completionDate ? new Date(request.completionDate).toLocaleDateString() : 'N/A'}
+                      {(() => {
+                        const completionDate = (request as any).procurementWorkflow?.propertyOfficerTimestamp || request.completionDate;
+                        return completionDate ? new Date(completionDate).toLocaleDateString() : 'N/A';
+                      })()}
                     </p>
                   </div>
                 </div>
@@ -217,9 +235,11 @@ export default function RequestPrintPage() {
               <div className="grid grid-cols-3 gap-8">
                 {/* Requester Signature */}
                 <div className="text-center">
-                  <div className="border-b-2 border-gray-400 pb-16 mb-2">
-                    {request.requesterSignature && (
-                      <div className="text-gray-500 italic pt-12">{request.requesterSignature}</div>
+                  <div className="border-b-2 border-gray-800 pb-2 mb-2 min-h-[60px] flex items-end justify-center">
+                    {request.requesterSignature ? (
+                      <div className="text-gray-900 font-semibold text-base pb-2">{request.requesterSignature}</div>
+                    ) : (
+                      <div className="text-gray-400 text-sm italic pb-2">No Signature</div>
                     )}
                   </div>
                   <p className="text-sm font-semibold text-gray-700">Requestor Signature</p>
@@ -232,40 +252,68 @@ export default function RequestPrintPage() {
                 </div>
 
                 {/* Approver Signature */}
-                {(request.status === 'approved' || request.status === 'completed') && (
-                  <div className="text-center">
-                    <div className="border-b-2 border-gray-400 pb-16 mb-2">
-                      {request.approverSignature && (
-                        <div className="text-gray-500 italic pt-12">{request.approverSignature}</div>
-                      )}
-                    </div>
-                    <p className="text-sm font-semibold text-gray-700">Approval Authority Signature</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {request.approver ? `${request.approver.firstName} ${request.approver.lastName}` : 'N/A'}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Date: {request.approvalDate ? new Date(request.approvalDate).toLocaleDateString() : 'N/A'}
-                    </p>
+                <div className="text-center">
+                  <div className="border-b-2 border-gray-800 pb-2 mb-2 min-h-[60px] flex items-end justify-center">
+                    {(() => {
+                      // Check workflow first, then fall back to request
+                      const signature = (request as any).procurementWorkflow?.approvalAuthoritySignature || request.approverSignature;
+                      const approver = (request as any).procurementWorkflow?.approvalAuthority || request.approver;
+                      const approvalDate = (request as any).procurementWorkflow?.approvalAuthorityTimestamp || request.approvalDate;
+                      
+                      if (signature) {
+                        return <div className="text-gray-900 font-semibold text-base pb-2">{signature}</div>;
+                      } else if (request.status === 'approved' || request.status === 'completed') {
+                        return <div className="text-gray-400 text-sm italic pb-2">No Signature Recorded</div>;
+                      } else {
+                        return <div className="text-gray-400 text-sm italic pb-2">Pending Approval</div>;
+                      }
+                    })()}
                   </div>
-                )}
+                  <p className="text-sm font-semibold text-gray-700">Approval Authority Signature</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {(() => {
+                      const approver = (request as any).procurementWorkflow?.approvalAuthority || request.approver;
+                      return approver ? `${approver.firstName} ${approver.lastName}` : 'N/A';
+                    })()}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Date: {(() => {
+                      const approvalDate = (request as any).procurementWorkflow?.approvalAuthorityTimestamp || request.approvalDate;
+                      return approvalDate ? new Date(approvalDate).toLocaleDateString() : 'N/A';
+                    })()}
+                  </p>
+                </div>
 
                 {/* Property Officer Signature */}
-                {request.status === 'completed' && (
-                  <div className="text-center">
-                    <div className="border-b-2 border-gray-400 pb-16 mb-2">
-                      {request.completerSignature && (
-                        <div className="text-gray-500 italic pt-12">{request.completerSignature}</div>
-                      )}
-                    </div>
-                    <p className="text-sm font-semibold text-gray-700">Property Officer Signature</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {request.completer ? `${request.completer.firstName} ${request.completer.lastName}` : 'Property Officer'}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Date: {request.completionDate ? new Date(request.completionDate).toLocaleDateString() : 'N/A'}
-                    </p>
+                <div className="text-center">
+                  <div className="border-b-2 border-gray-800 pb-2 mb-2 min-h-[60px] flex items-end justify-center">
+                    {(() => {
+                      // Check workflow first, then fall back to request
+                      const signature = (request as any).procurementWorkflow?.propertyOfficerSignature || request.completerSignature;
+                      
+                      if (signature) {
+                        return <div className="text-gray-900 font-semibold text-base pb-2">{signature}</div>;
+                      } else if (request.status === 'completed') {
+                        return <div className="text-gray-400 text-sm italic pb-2">No Signature Recorded</div>;
+                      } else {
+                        return <div className="text-gray-400 text-sm italic pb-2">Pending Completion</div>;
+                      }
+                    })()}
                   </div>
-                )}
+                  <p className="text-sm font-semibold text-gray-700">Property Officer Signature</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {(() => {
+                      const completer = (request as any).procurementWorkflow?.propertyOfficer || request.completer;
+                      return completer ? `${completer.firstName} ${completer.lastName}` : 'Property Officer';
+                    })()}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Date: {(() => {
+                      const completionDate = (request as any).procurementWorkflow?.propertyOfficerTimestamp || request.completionDate;
+                      return completionDate ? new Date(completionDate).toLocaleDateString() : 'N/A';
+                    })()}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
