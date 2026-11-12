@@ -18,6 +18,11 @@ export interface User {
   phoneNumber?: string;
   role: UserRole;
   workUnit?: string;
+  wing?: 'academic' | 'administrative';
+  college?: string;
+  school?: string;
+  department?: string;
+  administrativeUnit?: string;
   isActive: boolean;
   createdAt: string;
   // Computed property for backward compatibility
@@ -40,6 +45,11 @@ export interface Asset {
   name: string;
   category: AssetCategory;
   serialNumber?: string;
+  tagNumber?: string;
+  itemCategory?: string;
+  sourceType?: 'purchased' | 'donation' | 'transferred';
+  donorName?: string;
+  quantity?: number;
   value: number;
   purchaseDate: string;
   location: string;
@@ -135,6 +145,25 @@ export interface Return {
 export type RequestType = 'withdrawal' | 'purchase' | 'transfer' | 'maintenance' | 'disposal';
 export type RequestStatus = 'pending' | 'under_review' | 'approved' | 'rejected' | 'in_progress' | 'completed' | 'cancelled';
 export type RequestPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type ProcurementWorkflowState =
+  | 'pending_approval'
+  | 'pending_vp_approval'
+  | 'pending_property_officer'
+  | 'purchase_notification_sent'
+  | 'pending_qa_inspection'
+  | 'qa_approved'
+  | 'qa_rejected'
+  | 'item_ready'
+  | 'completed'
+  | 'rejected';
+
+export interface ProcurementWorkflow {
+  id: string;
+  currentState: ProcurementWorkflowState;
+  workflowType: 'existing_asset' | 'new_item';
+  permittedAmount?: number | null;
+  procurementDetails?: Record<string, unknown> | null;
+}
 
 export interface Request {
   id: string;
@@ -169,6 +198,7 @@ export interface Request {
   requester?: User;
   approver?: User;
   completer?: User;
+  procurementWorkflow?: ProcurementWorkflow | null;
 }
 
 // Notification Types

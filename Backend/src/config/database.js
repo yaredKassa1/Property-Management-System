@@ -1,6 +1,17 @@
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
+const dialectOptions = {
+  timezone: '+00:00'
+};
+
+if (process.env.DB_SSL === 'true') {
+  dialectOptions.ssl = {
+    require: true,
+    rejectUnauthorized: true
+  };
+}
+
 const sequelize = new Sequelize({
   dialect: 'postgres',
   host: process.env.DB_HOST || 'localhost',
@@ -9,9 +20,7 @@ const sequelize = new Sequelize({
   username: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || null,
   logging: process.env.NODE_ENV === 'development' ? console.log : false,
-  dialectOptions: {
-    timezone: '+00:00' // Force UTC timezone
-  },
+  dialectOptions,
   timezone: '+00:00', // Store all dates in UTC
   pool: {
     max: 5,

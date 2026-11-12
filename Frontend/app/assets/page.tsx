@@ -224,10 +224,10 @@ export default function AssetsPage() {
               <TableBody>
                 {filteredAssets.map((asset) => (
                   <TableRow key={asset.id}>
-                    <TableCell className="font-mono text-xs">{(asset as any).tagNumber || '—'}</TableCell>
+                    <TableCell className="font-mono text-xs">{asset.tagNumber || '—'}</TableCell>
                     <TableCell className="font-medium">{asset.assetId}</TableCell>
                     <TableCell>{asset.name}</TableCell>
-                    <TableCell>{(asset as any).itemCategory || '—'}</TableCell>
+                    <TableCell>{asset.itemCategory || '—'}</TableCell>
                     <TableCell>
                       <Badge variant={asset.category === 'fixed' ? 'info' : 'default'}>
                         {asset.category === 'fixed' ? t('fixed_assets') : t('fixed_consumable')}
@@ -238,7 +238,7 @@ export default function AssetsPage() {
                         {asset.status.replace('_', ' ')}
                       </span>
                     </TableCell>
-                    <TableCell>{(asset as any).quantity ?? 1}</TableCell>
+                    <TableCell>{asset.quantity ?? 1}</TableCell>
                     <TableCell>{formatCurrency(asset.value)}</TableCell>
                     <TableCell>
                       <Button size="sm" variant="ghost" onClick={() => setSelectedAsset(asset)}>
@@ -333,10 +333,10 @@ function AssetDetailModal({ asset, onClose }: { asset: Asset; onClose: () => voi
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Basic Information</h3>
               
-              {(asset as any).tagNumber && (
+              {asset.tagNumber && (
                 <div>
                   <label className="text-sm font-medium text-gray-500">Tag Number</label>
-                  <p className="mt-1 text-gray-900 font-mono">{(asset as any).tagNumber}</p>
+                  <p className="mt-1 text-gray-900 font-mono">{asset.tagNumber}</p>
                 </div>
               )}
             
@@ -363,17 +363,17 @@ function AssetDetailModal({ asset, onClose }: { asset: Asset; onClose: () => voi
                 </p>
               </div>
 
-              {(asset as any).itemCategory && (
+              {asset.itemCategory && (
                 <div>
                   <label className="text-sm font-medium text-gray-500">Item Category</label>
-                  <p className="mt-1 text-gray-900">{(asset as any).itemCategory}</p>
+                  <p className="mt-1 text-gray-900">{asset.itemCategory}</p>
                 </div>
               )}
 
-              {(asset as any).quantity && (
+              {asset.quantity && (
                 <div>
                   <label className="text-sm font-medium text-gray-500">Quantity</label>
-                  <p className="mt-1 text-gray-900">{(asset as any).quantity} {asset.unit || 'pcs'}</p>
+                  <p className="mt-1 text-gray-900">{asset.quantity} pcs</p>
                 </div>
               )}
             </div>
@@ -403,7 +403,7 @@ function AssetDetailModal({ asset, onClose }: { asset: Asset; onClose: () => voi
 
               <div>
                 <label className="text-sm font-medium text-gray-500">Acquisition Date</label>
-                <p className="mt-1 text-gray-900">{formatDate(asset.acquisitionDate)}</p>
+                <p className="mt-1 text-gray-900">{formatDate(asset.purchaseDate)}</p>
               </div>
 
               {asset.warrantyExpiry && (
@@ -425,15 +425,6 @@ function AssetDetailModal({ asset, onClose }: { asset: Asset; onClose: () => voi
             </div>
           )}
 
-          {/* Notes */}
-          {asset.notes && (
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold text-gray-900 border-b pb-2 mb-4">Notes</h3>
-              <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
-                <p className="text-gray-800 leading-relaxed">{asset.notes}</p>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Modal Footer */}
